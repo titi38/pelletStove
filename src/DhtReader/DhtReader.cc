@@ -28,12 +28,30 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+   
 
 #include "DhtReader.hh"
 
 // dispo : 8 9 11 15 16 17 18 19 20
 #define DHTPIN		11 // GPIO7 (SPI_CE1_N)
 #define MAXTIMINGS	95
+
+
+  DhtReader::DhtReader()
+  {
+//    if ( wiringPiSetup() == -1 )
+//      exit( 1 );
+
+    exiting = false;
+    thread_loop=new thread(&DhtReader::loop, this);
+    NVJ_LOG->append(NVJ_INFO, "DhtReader is starting" );
+  }
+
+  DhtReader::~DhtReader()
+  {
+    exiting = true;
+    thread_loop->join();
+  }
 
 
   /***********************************************************************/
@@ -103,21 +121,17 @@
   /***********************************************************************/
  
   void DhtReader::loop()
-  {
- 
-    if ( wiringPiSetup() == -1 )
-      exit( 1 );
- 
-    while ( true )
+  { 
+    while ( !exiting )
     {
 
       if (read_dht_dat())
       {
-        float humi = (float)((dht_dat[0] << 8) + dht_dat[1]) / 10;
+        humi = (double)((dht_dat[0] << 8) + dht_dat[1]) / 10;
         if ( humi > 100 )
           humi = dht_dat[0];	// for DHT11
 
-        double temp = (double)(((dht_dat[2] & 0x7F) << 8) + dht_dat[3]) / 10;
+        temp = (double)(((dht_dat[2] & 0x7F) << 8) + dht_dat[3]) / 10;
 
         if ( temp > 125 )								
           temp = dht_dat[2];	// for DHT11
@@ -125,9 +139,10 @@
         if ( dht_dat[2] & 0x80 )
 	      temp = -temp;
       
-        double humideX = humidex (temp,humi);
-        printf( "Humidity = %f %% Temperature = %f C humidex = %f\n", 
-                        humi, temp, humideX );
+        humideX = humidex (temp,humi);
+
+        NVJ_LOG->append(NVJ_DEBUG, string ("new Dht Values: Humidity = ") + to_string(humi) + ", Temperature = " + to_string(temp) + "°C humidex = " + to_string(humideX) );
+
       // updateRunning();
       }
 
@@ -138,13 +153,4 @@
 
   /***********************************************************************/
 
-  void DhtReader::startThread()
-  {
-  }
-
-  /***********************************************************************/
-
-  void DhtReader::stopThread()
-  {
-  }
 

@@ -32,6 +32,14 @@
 #include "ButtonControl.hh"
 
 
+  ButtonControl::ButtonControl()
+  {
+    if ( wiringPiSetup() == -1 )
+      exit( 1 );
+
+    initPinMode();
+  }
+
   /***********************************************************************/
 
   void ButtonControl::initPinMode()

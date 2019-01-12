@@ -47,6 +47,7 @@ using namespace std;
 
 
     public:
+      ButtonControl();
 
       void goToMainMenu();
       void incPower(short step);

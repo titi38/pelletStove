@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-// ControlledUnit.hh : Press button of pellet stove controller
+// PelletService.hh : Press button of pellet stove controller
 //
 //------------------------------------------------------------------------------
 //
@@ -23,22 +23,52 @@
 //
 //------------------------------------------------------------------------------
 
-#ifndef CONTROLLEDUNIT_HH_
-#define CONTROLLEDUNIT_HH_
+#ifndef PELLETSERVICE_HH_
+#define PELLETSERVICE_HH_
 
 #include <string>
 
-using namespace std;
+#include "libnavajo/libnavajo.hh"
+#include "libnavajo/LogStdOutput.hh"
 
+#include "ButtonControl.hh"
+#include "DhtReader.hh"
+#include "LcdReader.hh"
+
+
+  class PelletInfoMonitor;
 
   /**
-  * ControlledUnit - generic class to handle the relay
+  * PelletService - generic class to handle the relay
   */
-  class ControlledUnit
+  class PelletService : public DynamicRepository
   {
 
+    PelletInfoMonitor *pelletInfoMonitor = nullptr;
+
+    ButtonControl buttonControl;
+    DhtReader dhtReader;
+    LcdReader lcdReader;
+  //OpenWeatherClient openWeatherClient;
+
     public:
+      PelletService();
+      ~PelletService();
+
+    friend class PelletInfoMonitor;
   };
+
+
+  class PelletInfoMonitor: public DynamicPage
+  { 
+    bool getPage(HttpRequest* request, HttpResponse *response); 
+
+    PelletService* theService;
+
+    public:
+      PelletInfoMonitor(PelletService* service) : theService(service) {};
+  };
+
   
 
 #endif

@@ -27,6 +27,8 @@
 #define DHTREADER_HH_
 
 #include <string>
+#include <thread>
+#include "libnavajo/libnavajo.hh"
 
 using namespace std;
 
@@ -41,11 +43,18 @@ using namespace std;
     double humidex(double temp, double hum);
     void loop();
 
+    thread *thread_loop=nullptr;
+    volatile bool exiting = false;
+
+    volatile double humi=0, temp=0, humideX=0;
 
     public:
+      DhtReader();
+      ~DhtReader();
+      double getHumidex() const { return humideX; };
+      double getTemp() const { return temp; };
+      double getHumi() const { return humi; };
 
-      void startThread();
-      void stopThread();
 
   };
   

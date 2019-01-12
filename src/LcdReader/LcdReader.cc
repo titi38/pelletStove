@@ -24,16 +24,31 @@
 //------------------------------------------------------------------------------
 
 #include <unistd.h>
-#include <stdio.h>
-#include <string.h>
 #include <wiringPi.h>
 #include <ctype.h>
 
+
+#include "libnavajo/libnavajo.hh"
 #include "LcdReader.hh"
 
 #define	LCD_DGRAM	0x80
 
 
+  /***********************************************************************/
+
+  LcdReader::LcdReader()
+  {
+    exiting = false;
+
+    thread_loop=new thread(&LcdReader::loop, this);
+    NVJ_LOG->append(NVJ_INFO, "LcdReader is starting" );
+  }
+
+  LcdReader::~LcdReader()
+  {
+    exiting = true;
+    thread_loop->join();
+  }
 
   /***********************************************************************/
 
@@ -69,76 +84,93 @@
 
   void LcdReader::setLcdMessage(const char *msg)
   {
-    strncpy (lcdMessage, msg, MAX_SCREEN_SIZE);
+    lock_guard<std::mutex> lk(mutex_lcdMessage);
+
+    if (lcdMessage == msg) return;
+
+    lcdMessage = msg;
+    NVJ_LOG->append(NVJ_DEBUG, string ("new Lcd Message :" + lcdMessage));
+
+    if (lcdMessage.substr(0, 10) == "set TRAVAI")
+    {
+      power = stoi(lcdMessage.substr(19,1));
+      tempWater = stoi(lcdMessage.substr(24,2).c_str());
+      tempWaterConsigne = stoi(lcdMessage.substr(27,2).c_str());
+    }
   }
+
+  const string LcdReader::getLcdMessage() const
+  { 
+    lock_guard<std::mutex> lk(mutex_lcdMessage);
+    return lcdMessage; 
+  };
 
   /***********************************************************************/
 
   void LcdReader::loop()
   {
-    if ( digitalRead(static_cast<int>(LcdPins::en)) == HIGH )
+    for (int i=0; i<NB_LINES; i++)
+      bufText[i][0]=0;
+
+//    if ( wiringPiSetup() == -1 )
+//      exit( 1 );
+
+    initPinMode(); 
+
+    while ( !exiting )
     {
-      if ( digitalRead(static_cast<int>(LcdPins::rs)) == LOW ) // COMMAND
+      if ( digitalRead(static_cast<int>(LcdPins::en)) == HIGH )
       {
-        if (!rearmedCommand)
-          return;
-        rearmedCommand=false;
+        if ( digitalRead(static_cast<int>(LcdPins::rs)) == LOW ) // COMMAND
+        {
+          if (!rearmedCommand)
+            continue;
+          rearmedCommand=false;
  
-        char data = readLcdData() ;
-        if (( data & 0x02 )== 0x02 ) //CurrentHome
-          nbChome++;
+          char data = readLcdData() ;
+          if (( data & 0x02 )== 0x02 ) //CurrentHome
+            nbChome++;
 
-        else 
-          if (data == 0x01) // cls
-            nbCls++;
+          else 
+            if (data == 0x01) // cls
+              nbCls++;
 		        
-      }
-      else // digitalRead(rs) == HIGH 
-         // => write a char
-      { 
-        if (!rearmedData)
-          return;
-        rearmedData=false;
-
-        char data = readLcdData();
-        if ((nbCls>=2 && nbChome) && (data < 0x20 ))
-        { 
-          bufText[posLine][posCurr++]=0;
-          int nbEq=0;
-          for (int i=0; i<NB_LINES && nbEq < NB_LINES/2; i++)
-            if (strcmp(bufText[posLine], bufText[(posLine + i)%NB_LINES] )== 0)
-              nbEq++;
-          if (nbEq == NB_LINES/2)
-            setLcdMessage(bufText[posLine]);
-          posLine=(posLine+1)%NB_LINES;
-          posCurr=0;
         }
+        else // digitalRead(rs) == HIGH 
+             // => write a char
+        { 
+          if (!rearmedData)
+            continue;
+          rearmedData=false;
 
-        nbChome=0;
-        nbCls=0;
+          char data = readLcdData();
+          if ((nbCls>=2 && nbChome) && (data < 0x20 ))
+          { 
+            bufText[posLine][posCurr++]=0;
+            int nbEq=0;
+            for (int i=0; i<NB_LINES && nbEq < NB_LINES/2; i++)
+              if (strcmp(bufText[posLine], bufText[(posLine + i)%NB_LINES] )== 0)
+                nbEq++;
+            if (nbEq == NB_LINES/2)
+              setLcdMessage(bufText[posLine]);
+            posLine=(posLine+1)%NB_LINES;
+            posCurr=0;
+          }
 
-        if ( isprint(data)  && posCurr<MAX_SCREEN_SIZE)
-          bufText[posLine][posCurr++]=data;
+          nbChome=0;
+          nbCls=0;
 
+          if ( isprint(data)  && posCurr<MAX_SCREEN_SIZE)
+            bufText[posLine][posCurr++]=data;
+
+        }
+      }
+      else
+      {
+        rearmedData=true;
+        rearmedCommand=true;
       }
     }
-    else
-    {
-      rearmedData=true;
-      rearmedCommand=true;
-    }
-  }
-
-  /***********************************************************************/
-
-  void LcdReader::startThread()
-  {
-  }
-
-  /***********************************************************************/
-
-  void LcdReader::stopThread()
-  {
   }
 
   /***********************************************************************/

@@ -29,6 +29,13 @@
 #define MAX_SCREEN_SIZE 32
 #define NB_LINES 15
 
+#include <string>
+#include <thread>
+#include <mutex>
+
+using namespace std;
+
+
   /**
   * LcdReader - generic class to handle the relay
   */
@@ -44,17 +51,27 @@
     int posCurr =0;
     int posLine=0;
  
-    char lcdMessage[MAX_SCREEN_SIZE+1]="";
+    string lcdMessage;
 
     void initPinMode();
     char readLcdData();
     void loop();
     void setLcdMessage(const char* msg);
 
+    thread *thread_loop=nullptr;
+    volatile bool exiting = false;
+    mutable mutex mutex_lcdMessage;
+
+    volatile int power=0, tempWater=0, tempWaterConsigne=0;
+
     public:
-      void startThread();
-      void stopThread();
-      const char *getLcdMessage() const { return lcdMessage; };
+      LcdReader();
+      ~LcdReader();
+      const string getLcdMessage() const;
+      int getPower() const { return power; };
+      int getTempWater() const { return tempWater; };
+      int getTempWaterConsigne() const { return tempWaterConsigne; };
+
   };
   
 #endif
