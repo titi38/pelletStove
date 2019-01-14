@@ -28,13 +28,21 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-   
+
+#include "rapidjson/document.h"    	// rapidjson's DOM-style API
+#include "rapidjson/prettywriter.h"  	// for stringify JSON
+
 
 #include "DhtReader.hh"
+
 
 // dispo : 8 9 11 15 16 17 18 19 20
 #define DHTPIN		11 // GPIO7 (SPI_CE1_N)
 #define MAXTIMINGS	95
+
+
+
+using namespace rapidjson;
 
 
   DhtReader::DhtReader()
@@ -53,6 +61,23 @@
     thread_loop->join();
   }
 
+  string DhtReader::getInfoJson() const
+  { 
+    string resultat = "";
+    GenericStringBuffer<UTF8<> > buffer;
+    Writer<GenericStringBuffer<UTF8<> > > writer( buffer );
+    writer.StartObject();
+    writer.String( "temp" );
+    writer.Double( getTemp() );
+    writer.String( "humi" );
+    writer.Double( getHumi() );
+    writer.String( "humidex" );
+    writer.Double( getHumidex() );
+    writer.EndObject();
+    resultat = buffer.GetString();
+    buffer.Clear();
+    return resultat;
+  } 
 
   /***********************************************************************/
  
@@ -81,9 +106,7 @@
 			counter++;
 			delayMicroseconds( 3 );
 			if ( counter == 255 )
-			{
 				break;
-			}
 		}
 		laststate = digitalRead( DHTPIN );
  
@@ -142,8 +165,6 @@
         humideX = humidex (temp,humi);
 
         NVJ_LOG->append(NVJ_DEBUG, string ("new Dht Values: Humidity = ") + to_string(humi) + ", Temperature = " + to_string(temp) + "°C humidex = " + to_string(humideX) );
-
-      // updateRunning();
       }
 
       delay( 2000 );

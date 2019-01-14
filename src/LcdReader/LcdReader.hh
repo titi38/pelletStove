@@ -35,6 +35,7 @@
 
 using namespace std;
 
+  enum class OperatingMode : int { unknown, on, off, starting, cleaning, alertTempFume, alertTermDepr }; 
 
   /**
   * LcdReader - generic class to handle the relay
@@ -63,6 +64,7 @@ using namespace std;
     mutable mutex mutex_lcdMessage;
 
     volatile int power=0, tempWater=0, tempWaterConsigne=0;
+    volatile OperatingMode currentOperatingMode = OperatingMode::unknown;
 
     public:
       LcdReader();
@@ -71,7 +73,8 @@ using namespace std;
       int getPower() const { return power; };
       int getTempWater() const { return tempWater; };
       int getTempWaterConsigne() const { return tempWaterConsigne; };
-
+      OperatingMode getCurrentOperatingMode() const { return currentOperatingMode; };
+      string getInfoJson() const;
   };
   
 #endif

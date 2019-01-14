@@ -28,7 +28,7 @@
 #include <string.h>
 #include <wiringPi.h>
 #include <ctype.h>
-
+#include "libnavajo/libnavajo.hh"
 #include "ButtonControl.hh"
 
 
@@ -101,6 +101,7 @@
 
   void ButtonControl::incPower(short step)
   {
+    NVJ_LOG->append(NVJ_INFO, "incPower(" + to_string(step) + ")" );
     // start from main menu
     // increase puissance
     press2Buttons(ControlButtons::up, ControlButtons::down);
@@ -162,4 +163,26 @@
 
   /***********************************************************************/
 
+  void ButtonControl::start()
+  {
+    pressButton(ControlButtons::on, ButtonPressionDuration::longer);
+  }
+
+  /***********************************************************************/
+
+  void ButtonControl::stop()
+  {
+    pressButton(ControlButtons::off, ButtonPressionDuration::longer);
+  }
+
+  /***********************************************************************/
+
+  void ButtonControl::resetError()
+  {
+    pressButton(ControlButtons::off, ButtonPressionDuration::longer);
+    delay(1000);
+    pressButton(ControlButtons::off, ButtonPressionDuration::longer);
+  }
+
+  /***********************************************************************/
 

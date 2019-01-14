@@ -69,20 +69,9 @@ int main()
 bool PelletInfoMonitor::PelletInfoMonitor::getPage(HttpRequest* request, HttpResponse *response)
 {
 
-        std::string json = "{ \"InsideTempSensor\" : {";
-        json += "\"temp\": " + to_string( theService->dhtReader.getTemp() ) + ",";
-        json += "\"humi\": " + to_string( theService->dhtReader.getHumi() ) + ",";
-        json += "\"humidex\": " + to_string( theService->dhtReader.getHumidex() ) + "},";
-
-	json += "\"pelletMonitor\" : {";
-        json += "\"power\": " + to_string( theService->lcdReader.getPower() ) + ",";
-        json += "\"tempWater\": " + to_string( theService->lcdReader.getTempWater() ) + ",";
-        json += "\"tempWaterConsigne\": " + to_string( theService->lcdReader.getTempWaterConsigne() ) + "},";
-
-//        std::string json = "{ \"OusideTempSensor\" : {";
-//        json += "\"temp\": " + to_string( .getTemp() );
-
-
+        std::string json = "{ \"indoorData\" : " + dhtReader->getInfoJson() + ",";
+	json += "\"pelletMonitor\" : " + lcdReader->getInfoJson() + ",";
+        json += "\"outdoorData\" : " + openWeatherClient->getInfoJson();
         json += " }";
 
         return fromString(json, response);
@@ -90,10 +79,70 @@ bool PelletInfoMonitor::PelletInfoMonitor::getPage(HttpRequest* request, HttpRes
 
 /***********************************************************************/
 
+bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *response)
+{
+
+  if ( request->hasParameter( "incPower" ) )
+  {
+    short step = 1;
+    string ss;
+    if ( request->getParameter( "step", ss ) )
+        step = getValue<short>( ss );
+    buttonControl->incPower(step);
+  }
+
+  if ( request->hasParameter( "decPower" ) )
+  {
+    short step = 1;
+    string ss;
+    if ( request->getParameter( "step", ss ) )
+        step = getValue<short>( ss );
+    buttonControl->decPower(step);
+  }
+
+  if ( request->hasParameter( "incTempWater" ) )
+  {
+    short step = 1;
+    string ss;
+    if ( request->getParameter( "step", ss ) )
+        step = getValue<short>( ss );
+    buttonControl->incTempWater(step);
+  }
+
+  if ( request->hasParameter( "decTempWater" ) )
+  {
+    short step = 1;
+    string ss;
+    if ( request->getParameter( "step", ss ) )
+        step = getValue<short>( ss );
+    buttonControl->decTempWater(step);
+  }
+
+  if ( request->hasParameter( "start" ) )
+    buttonControl->start();
+
+  if ( request->hasParameter( "stop" ) )
+    buttonControl->stop();
+
+  if ( request->hasParameter( "resetAlert" ) )
+    buttonControl->resetError();
+
+  return true;
+}
+
+/***********************************************************************/
+
 PelletService::PelletService()
 {
-    pelletInfoMonitor = new PelletInfoMonitor(this);
+    delay(2000);
+    if (lcdReader.getCurrentOperatingMode() == OperatingMode::unknown)
+      buttonControl.goToMainMenu();
+
+    pelletInfoMonitor = new PelletInfoMonitor(&dhtReader, &lcdReader, &openWeatherClient);
     add("info.json",pelletInfoMonitor);
+
+    pelletCommand = new PelletCommand(&buttonControl);
+    add("command.json", pelletCommand);
 }
 
   /***********************************************************************/

@@ -54,7 +54,7 @@ using namespace std;
       void decPower(short step);
       void incTempWater(short stepC);
       void decTempWater(short stepC);
-
+      void resetError();
       void removeAllActivePrograms();
       void start();
       void stop();

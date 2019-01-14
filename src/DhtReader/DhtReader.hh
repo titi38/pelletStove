@@ -49,12 +49,13 @@ using namespace std;
     volatile double humi=0, temp=0, humideX=0;
 
     public:
+
       DhtReader();
       ~DhtReader();
       double getHumidex() const { return humideX; };
       double getTemp() const { return temp; };
       double getHumi() const { return humi; };
-
+      string getInfoJson() const;
 
   };
   

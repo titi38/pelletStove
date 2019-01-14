@@ -34,39 +34,60 @@
 #include "ButtonControl.hh"
 #include "DhtReader.hh"
 #include "LcdReader.hh"
+#include "OpenWeatherClient.hh"
 
 
-  class PelletInfoMonitor;
 
-  /**
-  * PelletService - generic class to handle the relay
-  */
-  class PelletService : public DynamicRepository
-  {
-
-    PelletInfoMonitor *pelletInfoMonitor = nullptr;
-
-    ButtonControl buttonControl;
-    DhtReader dhtReader;
-    LcdReader lcdReader;
-  //OpenWeatherClient openWeatherClient;
-
-    public:
-      PelletService();
-      ~PelletService();
-
-    friend class PelletInfoMonitor;
-  };
-
+  /****************************************************************************
+  * PelletInfoMonitor - libnavajo DynamicPage 
+  ****************************************************************************/
 
   class PelletInfoMonitor: public DynamicPage
   { 
     bool getPage(HttpRequest* request, HttpResponse *response); 
 
-    PelletService* theService;
+    DhtReader* dhtReader;
+    LcdReader* lcdReader;
+    OpenWeatherClient* openWeatherClient;
 
     public:
-      PelletInfoMonitor(PelletService* service) : theService(service) {};
+      PelletInfoMonitor(DhtReader *dr, LcdReader *lr, OpenWeatherClient *owc): 
+          dhtReader(dr), lcdReader (lr), openWeatherClient(owc) {};
+  };
+
+  /****************************************************************************
+  * PelletCommand - libnavajo DynamicPage 
+  ****************************************************************************/
+
+  class PelletCommand: public DynamicPage
+  { 
+    bool getPage(HttpRequest* request, HttpResponse *response); 
+
+    ButtonControl* buttonControl;
+
+    public:
+      PelletCommand(ButtonControl *bc): 
+          buttonControl(bc) {};
+  };
+
+  /****************************************************************************
+  * PelletService - generic class to handle REST API
+  ****************************************************************************/
+
+  class PelletService : public DynamicRepository
+  {
+
+    PelletInfoMonitor *pelletInfoMonitor = nullptr;
+    PelletCommand *pelletCommand = nullptr;
+
+    ButtonControl buttonControl;
+    DhtReader dhtReader;
+    LcdReader lcdReader;
+    OpenWeatherClient openWeatherClient;
+
+    public:
+      PelletService();
+      ~PelletService();
   };
 
   

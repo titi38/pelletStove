@@ -27,11 +27,14 @@
 #include <wiringPi.h>
 #include <ctype.h>
 
-
 #include "libnavajo/libnavajo.hh"
 #include "LcdReader.hh"
 
 #define	LCD_DGRAM	0x80
+
+#include "rapidjson/document.h"    	// rapidjson's DOM-style API
+#include "rapidjson/prettywriter.h"  	// for stringify JSON
+using namespace rapidjson;
 
 
   /***********************************************************************/
@@ -90,13 +93,30 @@
 
     lcdMessage = msg;
     NVJ_LOG->append(NVJ_DEBUG, string ("new Lcd Message :" + lcdMessage));
+    currentOperatingMode=OperatingMode::unknown;
 
-    if (lcdMessage.substr(0, 10) == "set TRAVAI")
+    if ( lcdMessage.substr(0, 10) == "set TRAVAI" )
+      currentOperatingMode=OperatingMode::on;
+    else if ( lcdMessage.substr(0, 10) == "  OFF     " )
+       currentOperatingMode=OperatingMode::off;
+    else if ( lcdMessage.substr(0, 6) == "COMNC " )
+       currentOperatingMode=OperatingMode::starting;
+    else if ( lcdMessage.substr(0, 11) == "  NETTOYAGE")
+       currentOperatingMode=OperatingMode::cleaning;
+    else if ( lcdMessage.substr(0, 28) == "    ALARME         TEMP FUME" )   
+       currentOperatingMode=OperatingMode::alertTempFume;
+    else if ( lcdMessage.substr(0, 28) == "    ALARME       TERM- DEPR." )
+       currentOperatingMode=OperatingMode::alertTermDepr;
+
+    if ( (currentOperatingMode == OperatingMode::on)
+      || (currentOperatingMode == OperatingMode::off)
+      || (currentOperatingMode == OperatingMode::starting) )
     {
       power = stoi(lcdMessage.substr(19,1));
       tempWater = stoi(lcdMessage.substr(24,2).c_str());
       tempWaterConsigne = stoi(lcdMessage.substr(27,2).c_str());
     }
+
   }
 
   const string LcdReader::getLcdMessage() const
@@ -104,6 +124,50 @@
     lock_guard<std::mutex> lk(mutex_lcdMessage);
     return lcdMessage; 
   };
+
+  string LcdReader::getInfoJson() const
+  { 
+    string resultat = "";
+    GenericStringBuffer<UTF8<> > buffer;
+    Writer<GenericStringBuffer<UTF8<> > > writer( buffer );
+    writer.StartObject();
+    writer.String( "power" );
+    writer.Int( getPower() );
+    writer.String( "tempWater" );
+    writer.Int( getTempWater() );
+    writer.String( "tempWaterConsigne" );
+    writer.Int( getTempWaterConsigne() );
+    writer.String( "operatingMode" );
+
+    switch(currentOperatingMode)
+    {
+      case OperatingMode::unknown:
+        writer.String("unknown");
+        break;
+      case OperatingMode::on:
+        writer.String("on");
+        break;
+      case OperatingMode::off:
+        writer.String("off");
+        break;
+      case OperatingMode::starting:
+        writer.String("starting");
+        break;
+      case OperatingMode::cleaning:
+        writer.String("cleaning");
+        break;
+      case OperatingMode::alertTempFume:
+        writer.String("alertTempFume");
+        break;
+      case OperatingMode::alertTermDepr:
+        writer.String("alertTermDepr");
+        break;
+    }
+    writer.EndObject();
+    resultat = buffer.GetString();
+    buffer.Clear();
+    return resultat;
+  }
 
   /***********************************************************************/
 
