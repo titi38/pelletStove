@@ -107,6 +107,8 @@ using namespace rapidjson;
        currentOperatingMode=OperatingMode::alertTempFume;
     else if ( lcdMessage.substr(0, 28) == "    ALARME       TERM- DEPR." )
        currentOperatingMode=OperatingMode::alertTermDepr;
+    else if ( lcdMessage.substr(0, 7) == "ATTENTE")
+       currentOperatingMode=OperatingMode::delayedStart;
 
     if ( (currentOperatingMode == OperatingMode::on)
       || (currentOperatingMode == OperatingMode::off)
@@ -162,6 +164,10 @@ using namespace rapidjson;
       case OperatingMode::alertTermDepr:
         writer.String("alertTermDepr");
         break;
+      case OperatingMode::delayedStart:
+        writer.String("delayedStart");
+        break;
+
     }
     writer.EndObject();
     resultat = buffer.GetString();

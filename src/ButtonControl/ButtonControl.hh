@@ -36,18 +36,16 @@ using namespace std;
   */
   class ButtonControl
   {
-    enum class ControlButtons : int { on=4, off=2, up=5, down=3 /*Arduino: on=6, off=4, up=7, down=5*/  } ;
-    enum class ButtonPressionDuration { quick, normal, longer };
-
-    void initPinMode();
-    void setButton(const ControlButtons b, const int state);
-    void pressButton(const ControlButtons b, 
-		     const ButtonPressionDuration duration=ButtonPressionDuration::quick);
-    void press2Buttons(const ControlButtons b1, const ControlButtons b2);
-
 
     public:
       ButtonControl();
+
+      enum class ControlButtons : int { on=4, off=2, up=5, down=3 /*Arduino: on=6, off=4, up=7, down=5*/  } ;
+      enum class ButtonPressionDuration { quick, normal, longer };
+
+      void pressButton(const ControlButtons b, 
+		     const ButtonPressionDuration duration=ButtonPressionDuration::quick);
+      void press2Buttons(const ControlButtons b1, const ControlButtons b2);
 
       void goToMainMenu();
       void incPower(short step);
@@ -58,6 +56,10 @@ using namespace std;
       void removeAllActivePrograms();
       void start();
       void stop();
+
+    private:
+      void initPinMode();
+      void setButton(const ControlButtons b, const int state);
 
   };
   

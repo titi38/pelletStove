@@ -64,10 +64,11 @@
     bool getPage(HttpRequest* request, HttpResponse *response); 
 
     ButtonControl* buttonControl;
+    LcdReader* lcdReader;
 
     public:
-      PelletCommand(ButtonControl *bc): 
-          buttonControl(bc) {};
+      PelletCommand(ButtonControl *bc, LcdReader *lr): 
+          buttonControl(bc), lcdReader (lr)  {};
   };
 
   /****************************************************************************

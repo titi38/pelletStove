@@ -35,7 +35,7 @@
 
 using namespace std;
 
-  enum class OperatingMode : int { unknown, on, off, starting, cleaning, alertTempFume, alertTermDepr }; 
+  enum class OperatingMode : int { unknown, on, off, starting, cleaning, alertTempFume, alertTermDepr, delayedStart }; 
 
   /**
   * LcdReader - generic class to handle the relay

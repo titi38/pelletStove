@@ -103,7 +103,7 @@ void OpenWeatherClient::loop()
       temp = document["main"]["temp"].GetDouble();
       humi = document["main"]["humidity"].GetInt();
       wind_speed = document["wind"]["speed"].GetDouble(), 
-      wind_dir   = document["wind"]["deg"].GetDouble();
+    //  wind_dir   = document["wind"]["deg"].GetDouble();
       icon = string("http://openweathermap.org/img/w/") + document["weather"][0]["icon"].GetString() + ".png";
 
       // ---------------------------------
