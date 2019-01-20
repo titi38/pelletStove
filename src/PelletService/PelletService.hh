@@ -36,6 +36,7 @@
 #include "LcdReader.hh"
 #include "OpenWeatherClient.hh"
 
+#include "AutoMode.hh"
 
 
   /****************************************************************************
@@ -49,10 +50,11 @@
     DhtReader* dhtReader;
     LcdReader* lcdReader;
     OpenWeatherClient* openWeatherClient;
+    AutoMode* autoMode;
 
     public:
-      PelletInfoMonitor(DhtReader *dr, LcdReader *lr, OpenWeatherClient *owc): 
-          dhtReader(dr), lcdReader (lr), openWeatherClient(owc) {};
+      PelletInfoMonitor(DhtReader *dr, LcdReader *lr, OpenWeatherClient *owc, AutoMode *am): 
+          dhtReader(dr), lcdReader (lr), openWeatherClient(owc), autoMode(am) {};
   };
 
   /****************************************************************************
@@ -65,10 +67,11 @@
 
     ButtonControl* buttonControl;
     LcdReader* lcdReader;
+    AutoMode* autoMode;
 
     public:
-      PelletCommand(ButtonControl *bc, LcdReader *lr): 
-          buttonControl(bc), lcdReader (lr)  {};
+      PelletCommand(ButtonControl *bc, LcdReader *lr, AutoMode *am): 
+          buttonControl(bc), lcdReader (lr), autoMode(am)  {};
   };
 
   /****************************************************************************
@@ -85,6 +88,7 @@
     DhtReader dhtReader;
     LcdReader lcdReader;
     OpenWeatherClient openWeatherClient;
+    AutoMode *autoMode=nullptr;
 
     public:
       PelletService();

@@ -74,7 +74,8 @@ bool PelletInfoMonitor::PelletInfoMonitor::getPage(HttpRequest* request, HttpRes
 
         std::string json = "{ \"indoorData\" : " + dhtReader->getInfoJson() + ",";
 	json += "\"pelletMonitor\" : " + lcdReader->getInfoJson() + ",";
-        json += "\"outdoorData\" : " + openWeatherClient->getInfoJson();
+        json += "\"outdoorData\" : " + openWeatherClient->getInfoJson() + ",";
+        json += "\"autoMode\" : " + autoMode->getInfoJson();
         json += " }";
 
         return fromString(json, response);
@@ -130,8 +131,7 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
     buttonControl->start();
     runSuccess = true;
   }
-
-  if ( request->hasParameter( "stop" ) )
+  else if ( request->hasParameter( "stop" ) )
   {
     buttonControl->stop();
     runSuccess = true;
@@ -143,7 +143,7 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
   }
   else if ( request->hasParameter( "clean" ) )
   {
-    if ( lcdReader->getCurrentOperatingMode() != OperatingMode::off )
+    if ( lcdReader->getCurrentOperatingMode() == OperatingMode::off )
     {
       buttonControl->stop();
       runSuccess = true;
@@ -193,7 +193,26 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
 
     runSuccess = true;
   }
-// else if ( request->hasParameter( "autoMode" ) )
+  else if ( request->hasParameter( "auto" ) )
+  {
+    string modeStr;
+    if ( request->getParameter( "mode", modeStr ) )
+    {
+      if (modeStr == "on")
+        autoMode->start(AutoMode::Mode::basic);
+      else if (modeStr == "off")
+        autoMode->stop();
+      else if (modeStr == "vac")
+        autoMode->start(AutoMode::Mode::vacation);
+      else if (modeStr == "abs")
+        autoMode->start(AutoMode::Mode::absent);
+
+      else if (modeStr == "custom")
+        autoMode->start(AutoMode::Mode::custom);
+      else
+        errMessage = "unknown mode, ignored";
+    }
+  }
   else
     errMessage = "Unknown command";
 
@@ -228,10 +247,12 @@ PelletService::PelletService()
     if (lcdReader.getCurrentOperatingMode() == OperatingMode::unknown)
       buttonControl.goToMainMenu();
 
-    pelletInfoMonitor = new PelletInfoMonitor(&dhtReader, &lcdReader, &openWeatherClient);
+    autoMode = new AutoMode(&buttonControl, &dhtReader, &lcdReader, &openWeatherClient);
+
+    pelletInfoMonitor = new PelletInfoMonitor(&dhtReader, &lcdReader, &openWeatherClient, autoMode);
     add("info.json",pelletInfoMonitor);
 
-    pelletCommand = new PelletCommand(&buttonControl, &lcdReader);
+    pelletCommand = new PelletCommand(&buttonControl, &lcdReader, autoMode);
     add("command.json", pelletCommand);
 }
 
@@ -239,7 +260,9 @@ PelletService::PelletService()
 
 PelletService::~PelletService()
 {
+  delete pelletCommand;
   delete pelletInfoMonitor;
+  delete autoMode;
 }
 
 

@@ -169,6 +169,31 @@ using namespace rapidjson;
         break;
 
     }
+    if ( currentOperatingMode == OperatingMode::on )
+    {
+      writer.String( "conso" );
+      switch(getPower())
+      {
+        case 1:
+          writer.Double(3600*3.1/14.1);
+          break;
+        case 2:
+          writer.Double(3600*3.1/8.4);
+          break;
+        case 3:
+          writer.Double(3600*3.1/5.9);
+          break;
+        case 4:
+          writer.Double(3600*3.1/4.5);
+          break;
+        case 5:
+          writer.Double(3600*3.1/3.9);
+          break;
+        case 6:
+          writer.Double(3600*3.1/3.5);
+          break;
+      }
+    }
     writer.EndObject();
     resultat = buffer.GetString();
     buffer.Clear();
