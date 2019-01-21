@@ -90,6 +90,7 @@
 
   void ButtonControl::goToMainMenu()
   {
+    NVJ_LOG->append(NVJ_INFO, "goToMainMenu()");
     // start from main menu
     pressButton(ControlButtons::off);
     pressButton(ControlButtons::off);
@@ -130,6 +131,8 @@
 
   void ButtonControl::incTempWater(short stepC)
   {
+    NVJ_LOG->append(NVJ_INFO, "incTempWater(" + to_string(stepC) + ") - TO DO...");
+
     //TODO
   }
 
@@ -144,6 +147,8 @@
 
   void ButtonControl::removeAllActivePrograms()
   {
+    NVJ_LOG->append(NVJ_INFO, "removeAllActivePrograms()");
+    
   // disable all programs
     press2Buttons(ControlButtons::up,ControlButtons::down);
     pressButton(ControlButtons::down);
@@ -165,6 +170,7 @@
 
   void ButtonControl::start()
   {
+    NVJ_LOG->append(NVJ_INFO, "start()");
     pressButton(ControlButtons::on, ButtonPressionDuration::longer);
   }
 
@@ -172,6 +178,7 @@
 
   void ButtonControl::stop()
   {
+    NVJ_LOG->append(NVJ_INFO, "stop()");
     pressButton(ControlButtons::off, ButtonPressionDuration::longer);
   }
 
@@ -179,6 +186,7 @@
 
   void ButtonControl::resetError()
   {
+    NVJ_LOG->append(NVJ_INFO, "resetError()");
     pressButton(ControlButtons::off, ButtonPressionDuration::longer);
     delay(1000);
     pressButton(ControlButtons::off, ButtonPressionDuration::longer);

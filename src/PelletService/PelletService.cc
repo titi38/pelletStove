@@ -199,18 +199,33 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
     if ( request->getParameter( "mode", modeStr ) )
     {
       if (modeStr == "on")
+      {
         autoMode->start(AutoMode::Mode::basic);
+        runSuccess = true;
+      }
       else if (modeStr == "off")
+      {
         autoMode->stop();
+        runSuccess = true;
+      }
       else if (modeStr == "vac")
+      {
         autoMode->start(AutoMode::Mode::vacation);
+        runSuccess = true;
+      }
       else if (modeStr == "abs")
+      {
         autoMode->start(AutoMode::Mode::absent);
-
+        runSuccess = true;
+      }
       else if (modeStr == "custom")
+      {
         autoMode->start(AutoMode::Mode::custom);
+        runSuccess = true;
+      }
       else
         errMessage = "unknown mode, ignored";
+
     }
   }
   else

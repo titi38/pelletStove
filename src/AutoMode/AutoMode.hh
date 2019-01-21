@@ -55,7 +55,7 @@ using namespace std;
     private:
       void loop();
 
-      Mode currentMode=Mode::off;
+      volatile Mode currentMode=Mode::off;
       ButtonControl *buttonControl=nullptr;
       DhtReader *dhtReader=nullptr;
       LcdReader *lcdReader=nullptr;

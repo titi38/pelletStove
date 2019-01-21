@@ -95,30 +95,45 @@ using namespace rapidjson;
     NVJ_LOG->append(NVJ_DEBUG, string ("new Lcd Message :" + lcdMessage));
     currentOperatingMode=OperatingMode::unknown;
 
-    if ( lcdMessage.substr(0, 10) == "set TRAVAI" )
-      currentOperatingMode=OperatingMode::on;
-    else if ( lcdMessage.substr(0, 10) == "  OFF     " )
-       currentOperatingMode=OperatingMode::off;
-    else if ( lcdMessage.substr(0, 6) == "COMNC " )
-       currentOperatingMode=OperatingMode::starting;
-    else if ( lcdMessage.substr(0, 11) == "  NETTOYAGE")
-       currentOperatingMode=OperatingMode::cleaning;
-    else if ( lcdMessage.substr(0, 28) == "    ALARME         TEMP FUME" )   
-       currentOperatingMode=OperatingMode::alertTempFume;
-    else if ( lcdMessage.substr(0, 28) == "    ALARME       TERM- DEPR." )
-       currentOperatingMode=OperatingMode::alertTermDepr;
-    else if ( lcdMessage.substr(0, 7) == "ATTENTE")
-       currentOperatingMode=OperatingMode::delayedStart;
-
-    if ( (currentOperatingMode == OperatingMode::on)
-      || (currentOperatingMode == OperatingMode::off)
-      || (currentOperatingMode == OperatingMode::starting) )
+    try
     {
-      power = stoi(lcdMessage.substr(19,1));
-      tempWater = stoi(lcdMessage.substr(24,2).c_str());
-      tempWaterConsigne = stoi(lcdMessage.substr(27,2).c_str());
-    }
+      if ( lcdMessage.substr(0, 10) == "set TRAVAI" )
+        currentOperatingMode=OperatingMode::on;
+      else if ( lcdMessage.substr(0, 10) == "  OFF     " )
+         currentOperatingMode=OperatingMode::off;
+      else if ( lcdMessage.substr(0, 6) == "COMNC " )
+         currentOperatingMode=OperatingMode::starting;
+      else if ( lcdMessage.substr(0, 11) == "  NETTOYAGE")
+         currentOperatingMode=OperatingMode::cleaning;
+      else if ( lcdMessage.substr(0, 28) == "    ALARME         TEMP FUME" )   
+         currentOperatingMode=OperatingMode::alertTempFume;
+      else if ( lcdMessage.substr(0, 28) == "    ALARME       TERM- DEPR." )
+         currentOperatingMode=OperatingMode::alertTermDepr;
+      else if ( lcdMessage.substr(0, 7) == "ATTENTE")
+         currentOperatingMode=OperatingMode::delayedStart;
 
+      if ( (currentOperatingMode == OperatingMode::on)
+        || (currentOperatingMode == OperatingMode::off)
+        || (currentOperatingMode == OperatingMode::starting) )
+      {
+        std::size_t found = lcdMessage.find("P=");
+        if (found!=std::string::npos)
+          power = stoi(lcdMessage.substr(found+2,1));
+
+        found = lcdMessage.find("T=");
+        if (found!=std::string::npos)
+        {
+          tempWater = stoi(lcdMessage.substr(found+2,2).c_str());
+          tempWaterConsigne = stoi(lcdMessage.substr(found+5,2).c_str());
+        }
+      }
+    }
+    catch(...)
+    {
+    NVJ_LOG->append(NVJ_INFO, string ("EXCEPTION"));
+
+//printf("eXCEPTION\n");
+    }
   }
 
   const string LcdReader::getLcdMessage() const
@@ -169,7 +184,7 @@ using namespace rapidjson;
         break;
 
     }
-    if ( currentOperatingMode == OperatingMode::on )
+    if ( currentOperatingMode == OperatingMode::on && getPower() )
     {
       writer.String( "conso" );
       switch(getPower())
