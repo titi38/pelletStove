@@ -35,7 +35,7 @@
 
 using namespace std;
 
-  enum class OperatingMode : int { unknown, on, off, starting, cleaning, alertTempFume, alertTermDepr, delayedStart }; 
+  enum class OperatingMode : int { unknown, on, off, starting, stopping, cleaning, alertTempFume, alertTermDepr, delayedStart }; 
 
   /**
   * LcdReader - generic class to handle the relay
@@ -66,6 +66,9 @@ using namespace std;
     volatile int power=0, tempWater=0, tempWaterConsigne=0;
     volatile OperatingMode currentOperatingMode = OperatingMode::unknown;
 
+    volatile bool stopping = false;
+    void stoppingDelay();
+
     public:
       LcdReader();
       ~LcdReader();
@@ -75,6 +78,7 @@ using namespace std;
       int getTempWaterConsigne() const { return tempWaterConsigne; };
       OperatingMode getCurrentOperatingMode() const { return currentOperatingMode; };
       string getInfoJson() const;
+      void setStopping();
   };
   
 #endif

@@ -84,9 +84,9 @@
     PelletInfoMonitor *pelletInfoMonitor = nullptr;
     PelletCommand *pelletCommand = nullptr;
 
-    ButtonControl buttonControl;
-    DhtReader dhtReader;
-    LcdReader lcdReader;
+    ButtonControl *buttonControl=nullptr;
+    DhtReader *dhtReader=nullptr;
+    LcdReader *lcdReader=nullptr;
     OpenWeatherClient openWeatherClient;
     AutoMode *autoMode=nullptr;
 

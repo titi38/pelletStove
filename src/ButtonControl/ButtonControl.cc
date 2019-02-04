@@ -32,10 +32,10 @@
 #include "ButtonControl.hh"
 
 
-  ButtonControl::ButtonControl()
+  ButtonControl::ButtonControl(LcdReader *l) : lcdReader(l)
   {
-    if ( wiringPiSetup() == -1 )
-      exit( 1 );
+   // if ( wiringPiSetup() == -1 )
+   //   exit( 1 );
 
     initPinMode();
   }
@@ -180,6 +180,7 @@
   {
     NVJ_LOG->append(NVJ_INFO, "stop()");
     pressButton(ControlButtons::off, ButtonPressionDuration::longer);
+    lcdReader->setStopping();
   }
 
   /***********************************************************************/
@@ -188,7 +189,7 @@
   {
     NVJ_LOG->append(NVJ_INFO, "resetError()");
     pressButton(ControlButtons::off, ButtonPressionDuration::longer);
-    delay(1000);
+    delay(2000);
     pressButton(ControlButtons::off, ButtonPressionDuration::longer);
   }
 

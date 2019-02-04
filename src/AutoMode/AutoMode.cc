@@ -62,7 +62,7 @@ using namespace rapidjson;
 
    while ( !exiting )
     {
-      if (needCleaning)
+      if ( needCleaning && ( currentMode == Mode::off ) )
       {
         buttonControl->stop();
         needCleaning = false;
@@ -80,10 +80,10 @@ using namespace rapidjson;
       std::time_t time_temp = std::time(nullptr);
       const std::tm * tm_local = std::localtime(&time_temp);
 
-      // time_out->tm_wday (0 à 6) 0 dimanche - 6 samedi
       shutdownPeriod = ( tm_local->tm_hour < 6 ) // 0 to 6 hours : off dans tous les modes
-                    || ( currentMode == Mode::basic && tm_local->tm_hour >= 9 && tm_local->tm_hour < 17 && tm_local->tm_wday !=0 && tm_local->tm_wday !=6 )
-                    || ( currentMode == Mode::absent && tm_local->tm_hour >= 7 && dhtReader->getHumidex() < 15 );
+                    || ( currentMode == Mode::basic && tm_local->tm_hour >= 9 && tm_local->tm_hour < 17 && tm_local->tm_wday !=0 && tm_local->tm_wday !=6 ) // tm_wday (0 à 6) 0 dimanche - 6 samedi
+
+                    || ( currentMode == Mode::absent && tm_local->tm_hour >= 7 && dhtReader->getHumidex() > 15 );
       // custom
 
       double currHumidex=dhtReader->getHumidex();
@@ -107,7 +107,13 @@ using namespace rapidjson;
           continue;
         }
         // else
-        short deltaPower = std::min (6, (short)(-deltaHumidex) + 1) - lcdReader->getPower();
+        short deltaPower = 0;
+
+        if (currentMode == Mode::absent)
+          deltaPower = 1 - lcdReader->getPower();
+        else
+          deltaPower = std::min (6, (short)(-deltaHumidex) + 1) - lcdReader->getPower();
+
         if (deltaPower != 0)
           buttonControl->incPower(deltaPower);
         sleep(60); // 1mn

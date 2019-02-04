@@ -27,6 +27,7 @@
 #define BUTTONCONTROL_HH_
 
 #include <string>
+#include "LcdReader.hh"
 
 using namespace std;
 
@@ -38,7 +39,7 @@ using namespace std;
   {
 
     public:
-      ButtonControl();
+      ButtonControl(LcdReader *lcd);
 
       enum class ControlButtons : int { on=4, off=2, up=5, down=3 /*Arduino: on=6, off=4, up=7, down=5*/  } ;
       enum class ButtonPressionDuration { quick, normal, longer };
@@ -58,9 +59,9 @@ using namespace std;
       void stop();
 
     private:
+      LcdReader *lcdReader;
       void initPinMode();
       void setButton(const ControlButtons b, const int state);
-
   };
   
 

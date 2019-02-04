@@ -53,6 +53,18 @@ using namespace rapidjson;
     thread_loop->join();
   }
 
+  void LcdReader::setStopping()
+  {
+    new thread(&LcdReader::stoppingDelay, this);
+  }
+
+  void LcdReader::stoppingDelay()
+  {
+    stopping=true;
+    sleep(35 * 60); // 35mn
+    stopping=false;
+  }
+
   /***********************************************************************/
 
   void LcdReader::initPinMode()
@@ -100,7 +112,12 @@ using namespace rapidjson;
       if ( lcdMessage.substr(0, 10) == "set TRAVAI" )
         currentOperatingMode=OperatingMode::on;
       else if ( lcdMessage.substr(0, 10) == "  OFF     " )
-         currentOperatingMode=OperatingMode::off;
+      {
+	if (stopping) // artificial behavior
+	  currentOperatingMode=OperatingMode::stopping;
+        else	
+          currentOperatingMode=OperatingMode::off;
+      }
       else if ( lcdMessage.substr(0, 6) == "COMNC " )
          currentOperatingMode=OperatingMode::starting;
       else if ( lcdMessage.substr(0, 11) == "  NETTOYAGE")
@@ -170,6 +187,9 @@ using namespace rapidjson;
       case OperatingMode::starting:
         writer.String("starting");
         break;
+      case OperatingMode::stopping:
+         writer.String("stopping");
+         break;	 
       case OperatingMode::cleaning:
         writer.String("cleaning");
         break;
@@ -190,22 +210,22 @@ using namespace rapidjson;
       switch(getPower())
       {
         case 1:
-          writer.Double(3600*3.1/14.1);
+          writer.Double(3* 3.1/14.1);
           break;
         case 2:
-          writer.Double(3600*3.1/8.4);
+          writer.Double(3* 3.1/8.4);
           break;
         case 3:
-          writer.Double(3600*3.1/5.9);
+          writer.Double(3* 3.1/5.9);
           break;
         case 4:
-          writer.Double(3600*3.1/4.5);
+          writer.Double(3* 3.1/4.5);
           break;
         case 5:
-          writer.Double(3600*3.1/3.9);
+          writer.Double(3* 3.1/3.9);
           break;
         case 6:
-          writer.Double(3600*3.1/3.5);
+          writer.Double(3* 3.1/3.5);
           break;
       }
     }

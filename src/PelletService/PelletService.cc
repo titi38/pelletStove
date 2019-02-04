@@ -25,7 +25,7 @@
 
 
 
-#include <signal.h> 
+#include <csignal> 
 #include <string.h> 
 #include <wiringPi.h>
 
@@ -51,7 +51,9 @@ int main()
   // connect signals
   signal( SIGTERM, exitFunction );
   signal( SIGINT, exitFunction );
-  
+  signal( SIGQUIT, exitFunction );
+
+
   NVJ_LOG->addLogOutput(new LogStdOutput);
   webServer = new WebServer;
 
@@ -71,14 +73,13 @@ int main()
 
 bool PelletInfoMonitor::PelletInfoMonitor::getPage(HttpRequest* request, HttpResponse *response)
 {
-
-        std::string json = "{ \"indoorData\" : " + dhtReader->getInfoJson() + ",";
-	json += "\"pelletMonitor\" : " + lcdReader->getInfoJson() + ",";
-        json += "\"outdoorData\" : " + openWeatherClient->getInfoJson() + ",";
-        json += "\"autoMode\" : " + autoMode->getInfoJson();
-        json += " }";
-
-        return fromString(json, response);
+  std::string json = "{ \"indoorData\" : " + dhtReader->getInfoJson() + ",";
+  json += "\"pelletMonitor\" : " + lcdReader->getInfoJson() + ",";
+  json += "\"outdoorData\" : " + openWeatherClient->getInfoJson() + ",";
+  json += "\"autoMode\" : " + autoMode->getInfoJson();
+  json += " }";
+  response->setCORS(/*true, false, "http://192."*/);
+  return fromString(json, response);
 }
 
 /***********************************************************************/
@@ -168,7 +169,7 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
         duration = ButtonControl::ButtonPressionDuration::quick;
       else if (durStr == "normal")
         duration = ButtonControl::ButtonPressionDuration::longer;
-      else if (durStr == "longer")
+      else if (durStr == "long")
         duration = ButtonControl::ButtonPressionDuration::longer;
       else
         errMessage = "unknown duration, will use normal duration";
@@ -184,7 +185,7 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
       buttons[nbButton++]=ButtonControl::ControlButtons::on;
 
     if ( request->hasParameter( "off" ) && nbButton < 2 )
-      buttons[nbButton++]=ButtonControl::ControlButtons::on;
+      buttons[nbButton++]=ButtonControl::ControlButtons::off;
 
     if (nbButton == 1)
       buttonControl->pressButton(buttons[0], duration);
@@ -251,6 +252,7 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
   resultJson = buffer.GetString();
   buffer.Clear();
 
+  response->setCORS(/*true, false, "http://192."*/);
   return fromString(resultJson, response);
 }
 
@@ -258,16 +260,24 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
 
 PelletService::PelletService()
 {
-    delay(2000);
-    if (lcdReader.getCurrentOperatingMode() == OperatingMode::unknown)
-      buttonControl.goToMainMenu();
+    if ( wiringPiSetup() == -1 )
+      exit( 1 );
 
-    autoMode = new AutoMode(&buttonControl, &dhtReader, &lcdReader, &openWeatherClient);
+    lcdReader = new LcdReader;
+    buttonControl = new ButtonControl (lcdReader);
+    dhtReader = new DhtReader;
 
-    pelletInfoMonitor = new PelletInfoMonitor(&dhtReader, &lcdReader, &openWeatherClient, autoMode);
+    delay(5000);
+
+    if (lcdReader->getCurrentOperatingMode() == OperatingMode::unknown)
+      buttonControl->goToMainMenu();
+
+    autoMode = new AutoMode(buttonControl, dhtReader, lcdReader, &openWeatherClient);
+
+    pelletInfoMonitor = new PelletInfoMonitor(dhtReader, lcdReader, &openWeatherClient, autoMode);
     add("info.json",pelletInfoMonitor);
 
-    pelletCommand = new PelletCommand(&buttonControl, &lcdReader, autoMode);
+    pelletCommand = new PelletCommand(buttonControl, lcdReader, autoMode);
     add("command.json", pelletCommand);
 }
 
@@ -278,6 +288,9 @@ PelletService::~PelletService()
   delete pelletCommand;
   delete pelletInfoMonitor;
   delete autoMode;
+  delete dhtReader;
+  delete lcdReader;
+  delete buttonControl;
 }
 
 
