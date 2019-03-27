@@ -63,13 +63,30 @@
 		const ButtonPressionDuration duration)
   {
     setButton(b, HIGH);
-    usleep(1000*500);
-    if (duration != ButtonPressionDuration::quick) // Add a delay
+
+    if (duration == ButtonPressionDuration::automatic)
     {
-      usleep(1000*1500);
-      if (duration != ButtonPressionDuration::normal) // Add a delay
+      string curMsg;
+      int i = 0;
+      do
+      {
+        curMsg = lcdReader->getLcdMessage();
+        usleep(20000);
+        i++;
+      }
+      while (curMsg == lcdReader->getLcdMessage() && i<500);
+    }    
+    else
+    {
+      usleep(1000*500);
+      if (duration != ButtonPressionDuration::quick) // Add a delay
+      {
         usleep(1000*1500);
+        if (duration != ButtonPressionDuration::normal) // Add a delay
+          usleep(1000*1500);
+      }
     }
+
     setButton(b, LOW);
     usleep(1000*500);
   }
@@ -188,9 +205,9 @@
   void ButtonControl::resetError()
   {
     NVJ_LOG->append(NVJ_INFO, "resetError()");
-    pressButton(ControlButtons::off, ButtonPressionDuration::longer);
+    pressButton(ControlButtons::off, ButtonPressionDuration::automatic);
     delay(2000);
-    pressButton(ControlButtons::off, ButtonPressionDuration::longer);
+    pressButton(ControlButtons::off, ButtonPressionDuration::automatic);
   }
 
   /***********************************************************************/

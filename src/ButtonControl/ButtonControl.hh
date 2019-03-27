@@ -42,7 +42,7 @@ using namespace std;
       ButtonControl(LcdReader *lcd);
 
       enum class ControlButtons : int { on=4, off=2, up=5, down=3 /*Arduino: on=6, off=4, up=7, down=5*/  } ;
-      enum class ButtonPressionDuration { quick, normal, longer };
+      enum class ButtonPressionDuration { quick, normal, longer, automatic };
 
       void pressButton(const ControlButtons b, 
 		     const ButtonPressionDuration duration=ButtonPressionDuration::quick);
