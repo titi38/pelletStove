@@ -71,10 +71,10 @@
       do
       {
         curMsg = lcdReader->getLcdMessage();
-        usleep(20000);
+        usleep(200000);
         i++;
       }
-      while (curMsg == lcdReader->getLcdMessage() && i<500);
+      while (curMsg == lcdReader->getLcdMessage() && i<50);
     }    
     else
     {

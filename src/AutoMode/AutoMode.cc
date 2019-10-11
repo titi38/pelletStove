@@ -87,17 +87,21 @@ using namespace rapidjson;
       const std::tm * tm_local = std::localtime(&time_temp);
 
       shutdownPeriod = ( tm_local->tm_hour < 6 ) // 0 to 6 hours : off dans tous les modes
-                    || ( currentMode == Mode::basic && tm_local->tm_hour >= 9 && tm_local->tm_hour < 17 && tm_local->tm_wday !=0 && tm_local->tm_wday !=6 ) // tm_wday (0 à 6) 0 dimanche - 6 samedi
-
-                    || ( currentMode == Mode::absent && tm_local->tm_hour >= 8 && dhtReader->getHumidex() > 15 );
+                    || ( currentMode == Mode::basic && tm_local->tm_hour >= 9 && tm_local->tm_hour < 17 && tm_local->tm_wday !=0 && tm_local->tm_wday !=5 ) // tm_wday (0 à 6) 0 dimanche - 6 samedi
+		    // change value 6 to 5: vendredi télétravail
+                    || ( currentMode == Mode::absent && tm_local->tm_hour >= 8 ); // work only from 6 to 8
       // custom
 
-      double currHumidex=dhtReader->getHumidex();
-      double deltaHumidex=currHumidex - humidexConsigne;
+//      double currHumidex=dhtReader->getHumidex();
+//      double deltaHumidex=currHumidex - humidexConsigne;
 
+
+      // if the pellet is running...
       if ( lcdReader->getCurrentOperatingMode() == OperatingMode::on )
       {
-        if ( ( currHumidex - humidexSwitchOff > 0 )
+	// if the temp/hygro has been reached
+        if (  ( currentMode == Mode::absent && dhtReader->getTemp() > 14.0 )
+           || ( currentMode != Mode::absent && dhtReader->getTemp() > 20.0 )
            || shutdownPeriod )
         {
           buttonControl->stop();
@@ -111,7 +115,7 @@ using namespace rapidjson;
         if (currentMode == Mode::absent)
           deltaPower = 1 - lcdReader->getPower();
         else
-          deltaPower = std::min (6, (short)(-deltaHumidex) + 1) - lcdReader->getPower();
+          deltaPower = std::min ( 6, (short)(19.0 - dhtReader->getTemp() ) + 1) - lcdReader->getPower(); // getTemp-20
 
         if (deltaPower != 0)
           buttonControl->incPower(deltaPower);
@@ -119,9 +123,12 @@ using namespace rapidjson;
         continue;
       }
 
+      // if the pellet is stopped
       if (  ( lcdReader->getCurrentOperatingMode() == OperatingMode::off )
          && ! shutdownPeriod
-         && ( deltaHumidex < -1.0 ) ) // && heure de presence !
+	 && ( ( dhtReader->getTemp() < ( 19.0 - dhtReader->getHumi() / 30.0 ) )
+            && !( openWeatherClient->isClearForcast() && 20.0 - dhtReader->getTemp() <= 2 ) )
+         )
       {
         buttonControl->start();
         sleep(20*60); // 20mn

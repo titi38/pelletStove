@@ -104,7 +104,7 @@ void OpenWeatherClient::loop()
       humi = document["main"]["humidity"].GetInt();
       wind_speed = document["wind"]["speed"].GetDouble(), 
     //  wind_dir   = document["wind"]["deg"].GetDouble();
-      icon = string("http://openweathermap.org/img/w/") + document["weather"][0]["icon"].GetString() + ".png";
+      icon = document["weather"][0]["icon"].GetString();
 
       // ---------------------------------
 
@@ -138,7 +138,8 @@ string OpenWeatherClient::getInfoJson() const
     writer.String( "wind_dir" );
     writer.Int( wind_dir );
     writer.String( "icon" );
-    writer.String( icon.c_str() );
+    string iconURL = "http://openweathermap.org/img/w/" + icon + ".png";
+    writer.String( iconURL.c_str() );
     writer.EndObject();
     resultat = buffer.GetString();
     buffer.Clear();

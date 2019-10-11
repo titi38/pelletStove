@@ -85,6 +85,7 @@ class OpenWeatherClient /**< LocalFlowEntry datatype definition */
     OpenWeatherClient ();
     ~OpenWeatherClient ();
     string getInfoJson() const;
+    bool isClearForcast() const { return icon == "01d" || icon == "02d" ; };
 
     char *send_get_http_query (const string &hostname, const string &url,  const string &param=NULL);
     char *send_post_http_query (const string &hostname, const string &url, const string &param);

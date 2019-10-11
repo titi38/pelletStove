@@ -129,13 +129,24 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
   }
   else if ( request->hasParameter( "start" ) )
   {
-    buttonControl->start();
-    runSuccess = true;
+    if ( lcdReader->getCurrentOperatingMode() == OperatingMode::off )
+    {
+      buttonControl->start();
+      runSuccess = true;
+    }
+    else
+      errMessage = "the pelet is not stopped";
+
   }
   else if ( request->hasParameter( "stop" ) )
-  {
-    buttonControl->stop();
-    runSuccess = true;
+  { 
+    if ( lcdReader->getCurrentOperatingMode() == OperatingMode::on )
+    {
+      buttonControl->stop();
+      runSuccess = true;
+    }
+     else
+      errMessage = "the pelet is not running";
   }
   else if ( request->hasParameter( "resetAlert" ) )
   {
