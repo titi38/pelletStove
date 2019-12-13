@@ -212,7 +212,7 @@ bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *r
     {
       if (modeStr == "on")
       {
-        autoMode->start(AutoMode::Mode::basic);
+        autoMode->start(AutoMode::Mode::normal);
         runSuccess = true;
       }
       else if (modeStr == "off")

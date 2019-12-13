@@ -1,0 +1,8 @@
+ADD:
+ - Mode CONFORT / NORM / ECO au mode automatique
+ - Temp/hygro curves
+ - Config mode
+ - Water Pump control
+
+BUG:
+ - Crash ?

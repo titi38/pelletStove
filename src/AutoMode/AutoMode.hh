@@ -45,7 +45,7 @@ using namespace std;
   class AutoMode
   {
     public:
-      enum class Mode : int { off, basic, vacation, absent, custom };
+      enum class Mode : int { off, normal, vacation, absent, custom };
       void start(Mode m);
       void stop();
       std::string getInfoJson() const;

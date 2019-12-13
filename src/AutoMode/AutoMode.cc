@@ -58,6 +58,9 @@ using namespace rapidjson;
   {
    bool shutdownPeriod = false;
    bool needCleaning = false;
+
+   bool veryColdCondition = false;
+
    sleep(5);
 
    while ( !exiting )
@@ -86,25 +89,40 @@ using namespace rapidjson;
       std::time_t time_temp = std::time(nullptr);
       const std::tm * tm_local = std::localtime(&time_temp);
 
-      shutdownPeriod = ( tm_local->tm_hour < 6 ) // 0 to 6 hours : off dans tous les modes
-                    || ( currentMode == Mode::basic && tm_local->tm_hour >= 9 && tm_local->tm_hour < 17 && tm_local->tm_wday !=0 && tm_local->tm_wday !=5 ) // tm_wday (0 à 6) 0 dimanche - 6 samedi
-		    // change value 6 to 5: vendredi télétravail
+      OperatingMode operatingMode = lcdReader->getCurrentOperatingMode();
+
+      double temp  = dhtReader->getTemp();
+      double humi = dhtReader->getHumi();
+      if ( (temp == 0) || (humi == 0) )
+	      continue;
+
+      shutdownPeriod = ( tm_local->tm_hour >= 22 || tm_local->tm_hour < 6 ) // 22 to 6 hours : off dans tous les modes
+                    || ( currentMode == Mode::normal 
+			 && tm_local->tm_hour >= 8 && tm_local->tm_hour < 17 
+			 && tm_local->tm_wday !=0 && tm_local->tm_wday !=5 && tm_local->tm_wday !=6 ) 	// tm_wday (0 à 6) 0 dimanche - 6 samedi
+		    											// add value 5: vendredi télétravail
                     || ( currentMode == Mode::absent && tm_local->tm_hour >= 8 ); // work only from 6 to 8
-      // custom
 
-//      double currHumidex=dhtReader->getHumidex();
-//      double deltaHumidex=currHumidex - humidexConsigne;
 
+      // shutdownPeriod... but it's cold !!!
+      if ( !veryColdCondition && shutdownPeriod && operatingMode == OperatingMode::off 
+           && currentMode != Mode::absent && ( temp > 13.5 + humi / 30.0 ) )
+      {
+        veryColdCondition = true;
+        shutdownPeriod = false;
+      }
 
       // if the pellet is running...
-      if ( lcdReader->getCurrentOperatingMode() == OperatingMode::on )
+      if ( operatingMode == OperatingMode::on )
       {
 	// if the temp/hygro has been reached
-        if (  ( currentMode == Mode::absent && dhtReader->getTemp() > 14.0 )
-           || ( currentMode != Mode::absent && dhtReader->getTemp() > 20.0 )
+        if (  ( currentMode == Mode::absent && temp > 14.0 )
+           || ( currentMode != Mode::absent && temp > 20.0 )
            || shutdownPeriod )
         {
+  	  NVJ_LOG->append(NVJ_INFO, "Stop Cond: shutdownPeriod=" + to_string(shutdownPeriod) + ", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() ) + ", currentMode=" + to_string(static_cast<int>(currentMode)) );
           buttonControl->stop();
+          veryColdCondition = false;
           needCleaning = true;
           sleep(60*60); // 1h
           continue;
@@ -115,7 +133,7 @@ using namespace rapidjson;
         if (currentMode == Mode::absent)
           deltaPower = 1 - lcdReader->getPower();
         else
-          deltaPower = std::min ( 6, (short)(19.0 - dhtReader->getTemp() ) + 1) - lcdReader->getPower(); // getTemp-20
+          deltaPower = std::min ( 6, (short)(19.0 - temp ) + 1) - lcdReader->getPower(); // getTemp-20
 
         if (deltaPower != 0)
           buttonControl->incPower(deltaPower);
@@ -123,13 +141,14 @@ using namespace rapidjson;
         continue;
       }
 
-      // if the pellet is stopped
-      if (  ( lcdReader->getCurrentOperatingMode() == OperatingMode::off )
+      // if the pellet is stopped: startCond ?
+      if (  ( operatingMode == OperatingMode::off )
          && ! shutdownPeriod
-	 && ( ( dhtReader->getTemp() < ( 19.0 - dhtReader->getHumi() / 30.0 ) )
-            && !( openWeatherClient->isClearForcast() && 20.0 - dhtReader->getTemp() <= 2 ) )
+	 && ( ( temp < ( 16.5 + humi / 30.0 ) )
+            && !( openWeatherClient->isClearForcast() && 20.0 - temp <= 2 ) )
          )
       {
+	NVJ_LOG->append(NVJ_INFO, "Start Cond: temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() ));
         buttonControl->start();
         sleep(20*60); // 20mn
         continue;
@@ -166,7 +185,7 @@ using namespace rapidjson;
       case Mode::off:
         writer.String("off");
         break;
-      case Mode::basic:
+      case Mode::normal:
         writer.String("basic");
         break;
       case Mode::vacation:
