@@ -27,6 +27,7 @@
 #define PELLETSERVICE_HH_
 
 #include <string>
+#include <mutex>
 
 #include "libnavajo/libnavajo.hh"
 #include "libnavajo/LogStdOutput.hh"
@@ -68,6 +69,8 @@
     ButtonControl* buttonControl;
     LcdReader* lcdReader;
     AutoMode* autoMode;
+
+    mutable mutex mutex_command;
 
     public:
       PelletCommand(ButtonControl *bc, LcdReader *lr, AutoMode *am): 

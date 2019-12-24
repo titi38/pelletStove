@@ -72,10 +72,12 @@ void OpenWeatherClient::loop()
       {
         resultJson = send_get_http_query ("api.openweathermap.org", "https://api.openweathermap.org/data/2.5/weather",
                                                 "lat=45.37&lon=5.7&units=metric&cnt=2&APPID=2af48f565fec5c7cdb3600a6270fef5c");
+	disconnect();
       }
-      catch(...)
+      catch(std::runtime_error& e)
       {
-        NVJ_LOG->append(NVJ_ERROR, "OpenWeatherClient failed to send http request" );
+        disconnect();
+        NVJ_LOG->append(NVJ_ERROR, string("OpenWeatherClient failed to send http request: ") + e.what() );
         sleep(10);
         continue;
       }
@@ -92,7 +94,6 @@ void OpenWeatherClient::loop()
         NVJ_LOG->append(NVJ_ERROR, "OpenWeatherClient bad json document" );
 
         free(resultJson);
-        disconnect();
         continue ;
       }
 
@@ -109,8 +110,6 @@ void OpenWeatherClient::loop()
       // ---------------------------------
 
       free(resultJson);
-      disconnect();
-
     }
     else
     {
@@ -262,7 +261,7 @@ void OpenWeatherClient::connect(const string &hostname, const unsigned short tcp
   if(RAND_status() != 1)
   {
     free_ssl();	
-    throw std::runtime_error(std::string("Connection to znets website failed (OpenSSL PRNG seeds issue)") );
+    throw std::runtime_error(std::string("Connection to website failed (OpenSSL PRNG seeds issue)") );
   }
 
   ssl_ctx = SSL_CTX_new(TLSv1_client_method());
@@ -273,14 +272,14 @@ void OpenWeatherClient::connect(const string &hostname, const unsigned short tcp
   //if (SSL_CTX_load_verify_locations(ssl_ctx, TRUSTED_CA_PATHNAME, NULL) != 1)
   //{
   //  free_ssl();	
-  //  throw std::runtime_error(std::string("Connection to znets website failed (couldn't load certificate)") );
+  //  throw std::runtime_error(std::string("Connection to website failed (couldn't load certificate)") );
   //}
 
   // Only support secure cipher suites
   if (SSL_CTX_set_cipher_list(ssl_ctx, SECURE_CIPHER_LIST) != 1)
   {
     free_ssl();	
-    throw std::runtime_error(std::string("Connection to znets website failed (unsupported cipher suites)") );
+    throw std::runtime_error(std::string("Connection to website failed (unsupported cipher suites)") );
   }
 
   // Create the SSL connection
@@ -289,7 +288,7 @@ void OpenWeatherClient::connect(const string &hostname, const unsigned short tcp
   if(!ssl)
   {
     free_ssl();	
-    throw std::runtime_error(std::string("Connection to znets website failed (SSL connect issue)") );
+    throw std::runtime_error(std::string("Connection to website failed (SSL connect issue)") );
   }
 
   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
@@ -305,14 +304,14 @@ void OpenWeatherClient::connect(const string &hostname, const unsigned short tcp
     { 
       // It failed because the certificate chain validation failed
       free_ssl();	
-      throw std::runtime_error(std::string("Connection to znets website failed (certificate chain validation failed: ") 
+      throw std::runtime_error(std::string("Connection to website failed (certificate chain validation failed: ") 
                     + X509_verify_cert_error_string(verify_err) + std::string(")"));
     }
     else 
     {
       // It failed for another reason
       free_ssl();	
-      throw std::runtime_error(std::string("Connection to znets website failed"));
+      throw std::runtime_error(std::string("Connection to website failed"));
     }
 
     return;
@@ -326,14 +325,14 @@ void OpenWeatherClient::connect(const string &hostname, const unsigned short tcp
     // The handshake was successful although the server did not provide a certificate
     // Most likely using an insecure anonymous cipher suite... get out!
     free_ssl();	
-    throw std::runtime_error(std::string("Connection to znets website failed (server authentification failed)") );
+    throw std::runtime_error(std::string("Connection to website failed (server authentification failed)") );
   }
 printf("4\n"); fflush(NULL);
   // Validate the hostname
   if (!validate_hostname(hostname.c_str(), server_cert)) 
   {
     free_ssl();
-    throw std::runtime_error(std::string("Connection to znets website failed (hostname validation failed)") );
+    throw std::runtime_error(std::string("Connection to website failed (hostname validation failed)") );
   }
 */
  // removeCA();
@@ -399,14 +398,15 @@ char *OpenWeatherClient::send_http_query (const string &hostname, const string &
     }
     catch(std::runtime_error& e)
     {
-      printf("%s\n", e.what()); fflush(NULL);
+      throw std::runtime_error( string("OpenWeatherClient::connect() failed :") + e.what());
+      return NULL;
     }
 
   while (BIO_write(sbio, query.c_str(), query.length()) <= 0)
   {
     if(! BIO_should_retry(sbio))
     {
-      throw std::runtime_error(std::string("Connection to znets website failed (BIO_write)") );
+      throw std::runtime_error(std::string("Connection to website failed (BIO_write)") );
       return NULL;
     }
     // retry
@@ -424,7 +424,7 @@ char *OpenWeatherClient::send_http_query (const string &hostname, const string &
 
     if (header && len < 20)
     { 
-      throw std::runtime_error(std::string("Connection to znets website failed (too short answer)") );
+      throw std::runtime_error(std::string("Connection to website failed (too short answer)") );
       return NULL; 
     }
       
@@ -434,7 +434,7 @@ char *OpenWeatherClient::send_http_query (const string &hostname, const string &
       char *protostr = strcasestr(tmpbuf,"HTTP/1.");
       if (!protoOK && (protostr == NULL) )
       { 
-        throw std::runtime_error(std::string("Connection to znets website failed (Unknown protocol)") );
+        throw std::runtime_error(std::string("Connection to website failed (Unknown protocol)") );
         return NULL; 
       }
       else
@@ -443,7 +443,7 @@ char *OpenWeatherClient::send_http_query (const string &hostname, const string &
 	//printf("retCode=%d\n",retCode); fflush(NULL);
         if (retCode != 200)
         { 
-          throw std::runtime_error(std::string("Connection to znets website failed (retCode != 200)") );
+          throw std::runtime_error(std::string("Connection to website failed (retCode != 200)") );
           return NULL; 
         }          
       }

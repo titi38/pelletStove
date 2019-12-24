@@ -86,6 +86,8 @@ bool PelletInfoMonitor::PelletInfoMonitor::getPage(HttpRequest* request, HttpRes
 
 bool PelletCommand::PelletCommand::getPage(HttpRequest* request, HttpResponse *response)
 {
+  lock_guard<std::mutex> lk(mutex_command);
+
   GenericStringBuffer<UTF8<> > buffer;
   Writer<GenericStringBuffer<UTF8<> > > writer( buffer );
   bool runSuccess=false;
