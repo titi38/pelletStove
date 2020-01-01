@@ -108,7 +108,7 @@ using namespace rapidjson;
 
       // shutdownPeriod... but it's cold !!!
       if ( !veryColdCondition && shutdownPeriod && operatingMode == OperatingMode::off 
-           && currentMode != Mode::absent && ( tempCorr < 16.5 - 2.5) ) // 2.5°C de moins : rallumage anticipé
+           && currentMode != Mode::absent && ( tempCorr < 17.0 - 2.5) ) // 2.5°C de moins : rallumage anticipé
       {
         veryColdCondition = true;
         shutdownPeriod = false;
@@ -123,6 +123,7 @@ using namespace rapidjson;
 	// if the temp/hygro has been reached
         if (  ( currentMode == Mode::absent && tempCorr > 13.0 )
            || ( currentMode != Mode::absent && tempCorr > 19.0 )
+	   || ( openWeatherClient->isClearForcast() && tempCorr >= 19.0 - 1.0 )
            || shutdownPeriod )
         {
   	  NVJ_LOG->append(NVJ_INFO, "Stop Cond: shutdownPeriod=" + to_string(shutdownPeriod) + ", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() ) + ", currentMode=" + to_string(static_cast<int>(currentMode)) );
@@ -149,9 +150,8 @@ using namespace rapidjson;
       // if the pellet is stopped: startCond ?
       if (  ( operatingMode == OperatingMode::off )
          && ! shutdownPeriod
-	 && ( ( ( tempCorr < 16.5 ) )
-            && !( openWeatherClient->isClearForcast() && 19.0 - tempCorr <= 2 ) )
-         )
+	 && ( tempCorr < 17.0 )
+         && !( openWeatherClient->isClearForcast() && tempCorr >= 17.0 - 1.0 ) )
       {
 	NVJ_LOG->append(NVJ_INFO, "Start Cond: temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() )
 					+ "veryColdCondition="+to_string(veryColdCondition) );
