@@ -107,7 +107,7 @@
 
   void ButtonControl::goToMainMenu()
   {
-    NVJ_LOG->append(NVJ_INFO, "goToMainMenu()");
+    NVJ_LOG->append(NVJ_INFO, "ButtonControl::goToMainMenu()");
     // start from main menu
     pressButton(ControlButtons::off);
     pressButton(ControlButtons::off);
@@ -119,7 +119,7 @@
 
   void ButtonControl::incPower(short step)
   {
-    NVJ_LOG->append(NVJ_INFO, "incPower(" + to_string(step) + ")" );
+    NVJ_LOG->append(NVJ_INFO, "ButtonControl::incPower(" + to_string(step) + ")" );
     // start from main menu
     // increase puissance
     press2Buttons(ControlButtons::up, ControlButtons::down);
@@ -148,7 +148,7 @@
 
   void ButtonControl::incTempWater(short stepC)
   {
-    NVJ_LOG->append(NVJ_INFO, "incTempWater(" + to_string(stepC) + ") - TO DO...");
+    NVJ_LOG->append(NVJ_INFO, "ButtonControl::incTempWater(" + to_string(stepC) + ") - TO DO...");
 
     //TODO
   }
@@ -164,7 +164,7 @@
 
   void ButtonControl::removeAllActivePrograms()
   {
-    NVJ_LOG->append(NVJ_INFO, "removeAllActivePrograms()");
+    NVJ_LOG->append(NVJ_INFO, "ButtonControl::removeAllActivePrograms()");
     
   // disable all programs
     press2Buttons(ControlButtons::up,ControlButtons::down);
@@ -187,7 +187,7 @@
 
   void ButtonControl::start()
   {
-    NVJ_LOG->append(NVJ_INFO, "start()");
+    NVJ_LOG->append(NVJ_INFO, "ButtonControl::start()");
     pressButton(ControlButtons::on, ButtonPressionDuration::longer);
   }
 
@@ -195,7 +195,7 @@
 
   void ButtonControl::stop()
   {
-    NVJ_LOG->append(NVJ_INFO, "stop()");
+    NVJ_LOG->append(NVJ_INFO, "ButtonControl::stop()");
     pressButton(ControlButtons::off, ButtonPressionDuration::longer);
     lcdReader->setStopping();
   }
@@ -204,7 +204,7 @@
 
   void ButtonControl::resetError()
   {
-    NVJ_LOG->append(NVJ_INFO, "resetError()");
+    NVJ_LOG->append(NVJ_INFO, "ButtonControl::resetError()");
     pressButton(ControlButtons::off, ButtonPressionDuration::automatic);
     delay(2000);
     pressButton(ControlButtons::off, ButtonPressionDuration::automatic);

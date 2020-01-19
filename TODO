@@ -1,8 +1,10 @@
 ADD:
  - Change temp limits to constant
- - openWeather is freezing
- - Mode CONFORT / NORM / ECO au mode automatique
- - Temp/hygro curves
+ - openWeather: add no value (site unavailable)
+ - Itf: Change automode Arrêter => MANUAL
+ - Itf: mode MANUAL, Commandes possibles
+ - Mode NORMAL/VACATION : add 3 submodes CONFORT / NORM / ECO (Itf+Automode)
+ - Add Graphs: Temp/hygro curves Inside/Outside/WeatherForcast / Conso 
  - Config mode
+ - Probe for pelet level
  - Water Pump control
-
