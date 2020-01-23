@@ -32,12 +32,13 @@
 #include <unistd.h>
 //#include <math.h>
 
-//#include "rapidjson/document.h"    	// rapidjson's DOM-style API
-//#include "rapidjson/prettywriter.h"  	// for stringify JSON
+#include "rapidjson/document.h"    	// rapidjson's DOM-style API
+#include "rapidjson/prettywriter.h"  	// for stringify JSON
 
 #include "Gauge.hh"
 
 
+using namespace rapidjson;
 
   /***********************************************************************/
 
@@ -69,7 +70,15 @@
   string Gauge::getInfoJson() const
   { 
     string resultat = "";
-    return resultat;     
+    GenericStringBuffer<UTF8<> > buffer;
+    Writer<GenericStringBuffer<UTF8<> > > writer( buffer );
+    writer.StartObject();
+    writer.String( "gaugeLevel" );
+    writer.Double( getLevel() );
+    writer.EndObject();
+    resultat = buffer.GetString();
+    buffer.Clear();
+    return resultat;
   }
 
   /***********************************************************************/
@@ -94,11 +103,12 @@
     nbDistance++;
 
     cout << "La distance moyenne est de: " << getAvgDistance() << "cm" << endl;
+    cout << "c'est à dire: " << getLevel() << "Kg" << endl;
   } 
 
   /***********************************************************************/
 
-  double Gauge::getAvgDistance()
+  double Gauge::getAvgDistance() const
   {
     double sum = .0;
     size_t i = 0;
@@ -107,6 +117,14 @@
       sum += histDistance[i];
     return sum / nbVal;
   }
+  /***********************************************************************/
+ 
+  double Gauge::getLevel() const
+  {
+    double topLevel = 12.0;
+    
+    return 45 * (1 - ( getAvgDistance() - 12 ) / 50.0 ) ; // in Kg
+  }
 
   /***********************************************************************/ 
 
@@ -114,7 +132,7 @@
   { 
     while ( !exiting )
     {
-      sleep(1);
+      sleep(2);
       readMesure();
     }
   }
@@ -124,7 +142,7 @@
   int main()
   {
      Gauge gauge;
-     sleep(100); 
+     sleep(10000); 
 
      return 0;
   }

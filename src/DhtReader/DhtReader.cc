@@ -71,8 +71,6 @@ using namespace rapidjson;
     writer.Double( getTemp() );
     writer.String( "humi" );
     writer.Double( getHumi() );
-    writer.String( "humidex" );
-    writer.Double( getHumidex() );
     writer.EndObject();
     resultat = buffer.GetString();
     buffer.Clear();
@@ -128,43 +126,28 @@ using namespace rapidjson;
   }
 
   /***********************************************************************/
-
-  double DhtReader::humidex(double temp, double hum)
-  // Zone confort entre 19 et 29
-  {
-    double t=7.5*temp/(237.7+temp);
-    double ex=6.112*pow(10,t)*(hum/100);
-    double h=temp+(5.0/9)*(ex-10);
-    if (h < temp)
-      return temp;
-
-    return h;
-  }
-
-  /***********************************************************************/
  
   void DhtReader::loop()
   { 
     while ( !exiting )
     {
+      double h=.0, t=.0;
 
       if (read_dht_dat())
       {
-        humi = (double)((dht_dat[0] << 8) + dht_dat[1]) / 10;
-        if ( humi > 100 )
-          humi = dht_dat[0];	// for DHT11
-
-        temp = (double)(((dht_dat[2] & 0x7F) << 8) + dht_dat[3]) / 10;
-
-        if ( temp > 125 )								
-          temp = dht_dat[2];	// for DHT11
+        h = (double)((dht_dat[0] << 8) + dht_dat[1]) / 10;
+        t = (double)(((dht_dat[2] & 0x7F) << 8) + dht_dat[3]) / 10;
 
         if ( dht_dat[2] & 0x80 )
 	      temp = -temp;
-      
-        humideX = humidex (temp,humi);
 
-        NVJ_LOG->append(NVJ_DEBUG, string ("new Dht Values: Humidity = ") + to_string(humi) + ", Temperature = " + to_string(temp) + "°C humidex = " + to_string(humideX) );
+	if ( t<100.0 && t>-100.0 && h<100 && h>0)
+	{
+          temp=t;
+  	  humi=h;
+	}
+
+        NVJ_LOG->append(NVJ_DEBUG, string ("new Dht Values: Humidity = ") + to_string(humi) + ", Temperature = " + to_string(temp) + "°C" );
       }
 
       delay( 2000 );

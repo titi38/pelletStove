@@ -30,6 +30,7 @@
 #include <thread>
 #include "libnavajo/libnavajo.hh"
 
+
 using namespace std;
 
 
@@ -40,19 +41,17 @@ using namespace std;
   {
     int dht_dat[5] = { 0, 0, 0, 0, 0 };
     bool read_dht_dat();
-    double humidex(double temp, double hum);
     void loop();
 
     thread *thread_loop=nullptr;
     volatile bool exiting = false;
 
-    volatile double humi=0, temp=0, humideX=0;
+    volatile double humi=1234.0, temp=1234.0;
 
     public:
 
       DhtReader();
       ~DhtReader();
-      double getHumidex() const { return humideX; };
       double getTemp() const { return temp; };
       double getHumi() const { return humi; };
       string getInfoJson() const;

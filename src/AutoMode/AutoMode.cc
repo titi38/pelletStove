@@ -93,12 +93,12 @@ using namespace rapidjson;
 
       double temp  = dhtReader->getTemp();
       double humi = dhtReader->getHumi();
-      if ( (temp == 0) || (humi == 0) )
+      if ( ( temp < -100.0 ) || (temp > 100.0) || ( humi < .0 ) || (humi > 100.0) )
 	      continue;
 
       double tempCorr = temp - humi / 75.0;
 
-      shutdownPeriod = ( tm_local->tm_hour >= 22 || tm_local->tm_hour < 6 ) // 22 to 6 hours : off dans tous les modes
+      shutdownPeriod = ( tm_local->tm_hour >= 22 || tm_local->tm_hour < 5 ) // 22 to 6 hours : off dans tous les modes
                     || ( currentMode == Mode::normal 
 			 && tm_local->tm_hour >= 8 && tm_local->tm_hour < 17 
 			 && tm_local->tm_wday != 0 && tm_local->tm_wday != 5 && tm_local->tm_wday != 6 ) 	// tm_wday (0 à 6) 0 dimanche - 6 samedi
@@ -108,7 +108,7 @@ using namespace rapidjson;
 
       // shutdownPeriod... but it's cold !!!
       if ( !veryColdCondition && shutdownPeriod && operatingMode == OperatingMode::off 
-           && currentMode != Mode::absent && ( tempCorr < 17.5 - 3.0) ) // 3.0°C de moins : rallumage anticipé
+           && currentMode != Mode::absent && ( tempCorr < 17.5 - 2.5) ) // 2.5°C de moins : rallumage anticipé
       {
         veryColdCondition = true;
       }
@@ -120,7 +120,7 @@ using namespace rapidjson;
         if (  ( currentMode == Mode::absent && tempCorr > 13.0 )
            || ( currentMode != Mode::absent && tempCorr > 19.0 )
 	   || ( openWeatherClient->isClearForcast() && tempCorr >= 19.0 - 1.0 )
-           || shutdownPeriod || (veryColdCondition && tempCorr >= 17.5 - 1.5) )
+           || shutdownPeriod || (veryColdCondition && tempCorr >= 17.5 - 1.0) )
         {
   	  NVJ_LOG->append(NVJ_INFO, "Stop Cond: shutdownPeriod=" + to_string(shutdownPeriod) + ", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() ) + ", currentMode=" + to_string(static_cast<int>(currentMode)) + ", veryColdCondition="+to_string(veryColdCondition) );
           buttonControl->stop();
