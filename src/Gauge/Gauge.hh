@@ -46,7 +46,7 @@
 
     volatile double histDistance[GAUGE_NBVAL];
     size_t nbDistance = 0;
-    int temperature = 20;
+    double temperature = 18.0;
 
     void readMesure();
     double getAvgDistance() const;
@@ -59,5 +59,6 @@
       ~Gauge();
       string getInfoJson() const;
       double getLevel() const;
+      void setTemperature(double t) { temperature = t; };
   };
 

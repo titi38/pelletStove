@@ -75,6 +75,8 @@ bool PelletInfoMonitor::PelletInfoMonitor::getPage(HttpRequest* request, HttpRes
 {
   std::string json = "{ \"indoorData\" : " + dhtReader->getInfoJson() + ",";
   json += "\"pelletMonitor\" : " + lcdReader->getInfoJson() + ",";
+  json += "\"pelletGauge\" : " + gauge->getInfoJson() + ",";
+
   json += "\"outdoorData\" : " + openWeatherClient->getInfoJson() + ",";
   json += "\"autoMode\" : " + autoMode->getInfoJson();
   json += " }";
@@ -279,6 +281,7 @@ PelletService::PelletService()
     lcdReader = new LcdReader;
     buttonControl = new ButtonControl (lcdReader);
     dhtReader = new DhtReader;
+    gauge = new Gauge;
 
     delay(5000);
 
@@ -287,7 +290,7 @@ PelletService::PelletService()
 
     autoMode = new AutoMode(buttonControl, dhtReader, lcdReader, &openWeatherClient);
 
-    pelletInfoMonitor = new PelletInfoMonitor(dhtReader, lcdReader, &openWeatherClient, autoMode);
+    pelletInfoMonitor = new PelletInfoMonitor(dhtReader, lcdReader, gauge, &openWeatherClient, autoMode);
     add("info.json",pelletInfoMonitor);
 
     pelletCommand = new PelletCommand(buttonControl, lcdReader, autoMode);
@@ -303,6 +306,7 @@ PelletService::~PelletService()
   delete autoMode;
   delete dhtReader;
   delete lcdReader;
+  delete gauge;
   delete buttonControl;
 }
 

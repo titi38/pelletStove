@@ -74,6 +74,7 @@ include_directories (
   ${PROJECT_SOURCE_DIR}/OpenWeatherClient
   ${PROJECT_SOURCE_DIR}/PelletService
   ${PROJECT_SOURCE_DIR}/LcdReader
+  ${PROJECT_SOURCE_DIR}/Gauge
   ${PROJECT_SOURCE_DIR}/AutoMode
   )
   
@@ -86,6 +87,7 @@ file(GLOB sources_cpp
   ${PROJECT_SOURCE_DIR}/OpenWeatherClient/OpenWeatherClient.cc
   ${PROJECT_SOURCE_DIR}/PelletService/PelletService.cc
   ${PROJECT_SOURCE_DIR}/LcdReader/LcdReader.cc
+  ${PROJECT_SOURCE_DIR}/Gauge/Gauge.cc
   ${PROJECT_SOURCE_DIR}/AutoMode/AutoMode.cc
   #  ${PROJECT_SOURCE_DIR}/LogWebBuffer/LogWebBuffer.cc
   )

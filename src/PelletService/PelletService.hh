@@ -36,7 +36,7 @@
 #include "DhtReader.hh"
 #include "LcdReader.hh"
 #include "OpenWeatherClient.hh"
-
+#include "Gauge.hh"
 #include "AutoMode.hh"
 
 
@@ -50,12 +50,13 @@
 
     DhtReader* dhtReader;
     LcdReader* lcdReader;
+    Gauge *gauge;
     OpenWeatherClient* openWeatherClient;
     AutoMode* autoMode;
 
     public:
-      PelletInfoMonitor(DhtReader *dr, LcdReader *lr, OpenWeatherClient *owc, AutoMode *am): 
-          dhtReader(dr), lcdReader (lr), openWeatherClient(owc), autoMode(am) {};
+      PelletInfoMonitor(DhtReader *dr, LcdReader *lr, Gauge *g, OpenWeatherClient *owc, AutoMode *am): 
+          dhtReader(dr), lcdReader (lr), gauge(g), openWeatherClient(owc), autoMode(am) {};
   };
 
   /****************************************************************************
@@ -90,6 +91,7 @@
     ButtonControl *buttonControl=nullptr;
     DhtReader *dhtReader=nullptr;
     LcdReader *lcdReader=nullptr;
+    Gauge *gauge=nullptr;
     OpenWeatherClient openWeatherClient;
     AutoMode *autoMode=nullptr;
 

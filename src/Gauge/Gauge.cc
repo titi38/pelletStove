@@ -26,11 +26,8 @@
 #include <chrono>
 #include <iostream>
 #include <wiringPi.h>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <stdint.h>
 #include <unistd.h>
-//#include <math.h>
+#include "libnavajo/LogRecorder.hh"
 
 #include "rapidjson/document.h"    	// rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h"  	// for stringify JSON
@@ -49,7 +46,7 @@ using namespace rapidjson;
 
     exiting = false;
     thread_loop=new thread(&Gauge::loop, this);
-    //NVJ_LOG->append(NVJ_INFO, "Gauge is starting" );
+    NVJ_LOG->append(NVJ_INFO, "Gauge is starting" );
 
     pinMode(static_cast<int>(Sensors::trigger), OUTPUT);
     pinMode(static_cast<int>(Sensors::echo), INPUT);
@@ -73,7 +70,7 @@ using namespace rapidjson;
     GenericStringBuffer<UTF8<> > buffer;
     Writer<GenericStringBuffer<UTF8<> > > writer( buffer );
     writer.StartObject();
-    writer.String( "gaugeLevel" );
+    writer.String( "remaining" );
     writer.Double( getLevel() );
     writer.EndObject();
     resultat = buffer.GetString();
@@ -102,8 +99,8 @@ using namespace rapidjson;
     histDistance[nbDistance%GAUGE_NBVAL] = chrono::duration_cast<chrono::nanoseconds>(end - start).count() * 1e-9 * (33100 + .6 * temperature) / 2;
     nbDistance++;
 
-    cout << "La distance moyenne est de: " << getAvgDistance() << "cm" << endl;
-    cout << "c'est à dire: " << getLevel() << "Kg" << endl;
+//    cout << "La distance moyenne est de: " << getAvgDistance() << "cm" << endl;
+//    cout << "c'est à dire: " << getLevel() << "Kg" << endl;
   } 
 
   /***********************************************************************/
@@ -121,9 +118,9 @@ using namespace rapidjson;
  
   double Gauge::getLevel() const
   {
-    double topLevel = 12.0;
+    const double topLevel = 33.0;
     
-    return 45 * (1 - ( getAvgDistance() - 12 ) / 50.0 ) ; // in Kg
+    return 45 * (1 - ( getAvgDistance() - topLevel ) / 50 ) ; // in Kg
   }
 
   /***********************************************************************/ 
@@ -138,7 +135,7 @@ using namespace rapidjson;
   }
 
   /***********************************************************************/
-
+/*
   int main()
   {
      Gauge gauge;
@@ -146,3 +143,4 @@ using namespace rapidjson;
 
      return 0;
   }
+*/
