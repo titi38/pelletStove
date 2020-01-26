@@ -46,7 +46,7 @@
 
     volatile double histDistance[GAUGE_NBVAL];
     size_t nbDistance = 0;
-    double temperature = 18.0;
+    double temperature = 21.0;
 
     void readMesure();
     double getAvgDistance() const;

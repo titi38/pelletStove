@@ -60,6 +60,7 @@ using namespace rapidjson;
   {
     exiting = true;
     thread_loop->join();
+    NVJ_LOG->append(NVJ_INFO, "Gauge is finished" );
   }
 
   /***********************************************************************/
@@ -82,25 +83,38 @@ using namespace rapidjson;
 
   void Gauge::readMesure()
   {
-    chrono::steady_clock::time_point end, start;
+    chrono::steady_clock::time_point endTrig, startTrig, endEcho;
     double distance = .0;
 
     digitalWrite( static_cast<int>(Sensors::trigger), HIGH );
-    usleep(10); // wait 10us
-
+    startTrig = chrono::steady_clock::now();
+    usleep(25); // wait 25us
     digitalWrite( static_cast<int>(Sensors::trigger), LOW );
+    endTrig = chrono::steady_clock::now();
 
-    while ( digitalRead( static_cast<int>(Sensors::echo) ) == LOW ) // start emission
-      start = chrono::steady_clock::now();
+    bool timeout = false;
+    size_t nbLow=0, nbHigh=0;
 
-    while ( digitalRead( static_cast<int>(Sensors::echo) ) == HIGH ) // echo received
-      end = chrono::steady_clock::now();
 
-    histDistance[nbDistance%GAUGE_NBVAL] = chrono::duration_cast<chrono::nanoseconds>(end - start).count() * 1e-9 * (33100 + .6 * temperature) / 2;
+    while ( digitalRead( static_cast<int>(Sensors::echo) ) == LOW && !timeout)
+      { timeout = nbLow++ > 50000; }; // avg:5000
+    while ( digitalRead( static_cast<int>(Sensors::echo) ) == HIGH && !timeout ) // echo received
+      { timeout = nbHigh++ > 500000; }; // avg:50000
+
+    endEcho = chrono::steady_clock::now();
+
+    if (timeout)
+    {
+      NVJ_LOG->append(NVJ_INFO, "Gauge: TIMEOUT ! nbLow="+to_string(nbLow)+", nbHigh="+to_string(nbHigh) );
+      return;
+    }
+
+    histDistance[nbDistance%GAUGE_NBVAL] = 100 * chrono::duration_cast<chrono::nanoseconds>((endEcho - startTrig) - 2 * (endTrig-startTrig) ).count() * 1e-9 * (331.50 + .6 * temperature) / 2;
+
+
+    NVJ_LOG->append(NVJ_INFO, "Gauge : dist=" + to_string( getAvgDistance() ) + "cm, remaining=" + to_string( getLevel() ) + "Kg" + ", lastReadDist="+ to_string(histDistance[nbDistance%GAUGE_NBVAL]) +", nbLow="+to_string(nbLow)+", nbHigh="+to_string(nbHigh));
     nbDistance++;
 
-//    cout << "La distance moyenne est de: " << getAvgDistance() << "cm" << endl;
-//    cout << "c'est à dire: " << getLevel() << "Kg" << endl;
   } 
 
   /***********************************************************************/
@@ -109,18 +123,23 @@ using namespace rapidjson;
   {
     double sum = .0;
     size_t i = 0;
+    if (!nbDistance) return 0;
     size_t nbVal=(nbDistance>GAUGE_NBVAL)?GAUGE_NBVAL:nbDistance;
     for (size_t i=0; i < nbVal; i++)
       sum += histDistance[i];
     return sum / nbVal;
   }
+
   /***********************************************************************/
  
   double Gauge::getLevel() const
   {
-    const double topLevel = 33.0;
-    
-    return 45 * (1 - ( getAvgDistance() - topLevel ) / 50 ) ; // in Kg
+    const double topLevel = 28.0;
+    const double capacity = 60; 
+    double res = capacity * (1 - ( getAvgDistance() - topLevel ) / 50 ) ; // in Kg
+    if (res > 60 ) return 60;
+    if (res < 0 ) return 0;
+    return res;
   }
 
   /***********************************************************************/ 
@@ -129,7 +148,7 @@ using namespace rapidjson;
   { 
     while ( !exiting )
     {
-      sleep(2);
+      sleep(3);
       readMesure();
     }
   }

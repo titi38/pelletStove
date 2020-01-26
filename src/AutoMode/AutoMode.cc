@@ -108,7 +108,7 @@ using namespace rapidjson;
 
       // shutdownPeriod... but it's cold !!!
       if ( !veryColdCondition && shutdownPeriod && operatingMode == OperatingMode::off 
-           && currentMode != Mode::absent && ( tempCorr < 17.5 - 2.5) ) // 2.5°C de moins : rallumage anticipé
+           && currentMode != Mode::absent && ( tempCorr < 17.5 - 3.0) ) // 3°C de moins : rallumage anticipé
       {
         veryColdCondition = true;
       }
@@ -152,7 +152,7 @@ using namespace rapidjson;
 	 && ( tempCorr < 17.5 )
          && !( openWeatherClient->isClearForcast() && tempCorr >= 17.5 - 1.0 ) )
       {
-	NVJ_LOG->append(NVJ_INFO, "Start Cond: temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() )
+	NVJ_LOG->append(NVJ_INFO, "Start Cond: tempCorr="+ to_string(tempCorr) +", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() )
 					+ ", currentMode=" + to_string(static_cast<int>(currentMode)) + ", veryColdCondition="+to_string(veryColdCondition) );
         buttonControl->start();
         sleep(20*60); // 20mn
