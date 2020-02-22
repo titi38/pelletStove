@@ -52,6 +52,7 @@ using namespace rapidjson;
     pinMode(static_cast<int>(Sensors::echo), INPUT);
 
     digitalWrite( static_cast<int>(Sensors::trigger), LOW );
+
   }
 
   /***********************************************************************/
@@ -83,14 +84,12 @@ using namespace rapidjson;
 
   void Gauge::readMesure()
   {
-    chrono::steady_clock::time_point endTrig, startTrig, endEcho;
+    chrono::steady_clock::time_point startEcho, endEcho;
     double distance = .0;
 
     digitalWrite( static_cast<int>(Sensors::trigger), HIGH );
-    startTrig = chrono::steady_clock::now();
-    usleep(25); // wait 25us
+    usleep(10); // wait 10us
     digitalWrite( static_cast<int>(Sensors::trigger), LOW );
-    endTrig = chrono::steady_clock::now();
 
     bool timeout = false;
     size_t nbLow=0, nbHigh=0;
@@ -98,6 +97,9 @@ using namespace rapidjson;
 
     while ( digitalRead( static_cast<int>(Sensors::echo) ) == LOW && !timeout)
       { timeout = nbLow++ > 50000; }; // avg:5000
+
+    startEcho = chrono::steady_clock::now();
+
     while ( digitalRead( static_cast<int>(Sensors::echo) ) == HIGH && !timeout ) // echo received
       { timeout = nbHigh++ > 500000; }; // avg:50000
 
@@ -109,8 +111,7 @@ using namespace rapidjson;
       return;
     }
 
-    histDistance[nbDistance%GAUGE_NBVAL] = 100 * chrono::duration_cast<chrono::nanoseconds>((endEcho - startTrig) - 2 * (endTrig-startTrig) ).count() * 1e-9 * (331.50 + .6 * temperature) / 2;
-
+    histDistance[nbDistance%GAUGE_NBVAL] = chrono::duration_cast<chrono::nanoseconds>(endEcho - startEcho).count() * 1e-9 * 17150; 
 
     NVJ_LOG->append(NVJ_INFO, "Gauge : dist=" + to_string( getAvgDistance() ) + "cm, remaining=" + to_string( getLevel() ) + "Kg" + ", lastReadDist="+ to_string(histDistance[nbDistance%GAUGE_NBVAL]) +", nbLow="+to_string(nbLow)+", nbHigh="+to_string(nbHigh));
     nbDistance++;
@@ -134,9 +135,14 @@ using namespace rapidjson;
  
   double Gauge::getLevel() const
   {
-    const double topLevel = 28.0;
-    const double capacity = 60; 
-    double res = capacity * (1 - ( getAvgDistance() - topLevel ) / 50 ) ; // in Kg
+    const double topLevel = 15.0; // cm
+    const double capacity = 60;  // Kg
+    const double canisterHeight = 66; //cm
+    
+    double avgDist =  getAvgDistance();
+
+    double res = capacity * (1 - ( avgDist - topLevel ) / canisterHeight ) ; // in Kg
+
     if (res > 60 ) return 60;
     if (res < 0 ) return 0;
     return res;

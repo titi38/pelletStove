@@ -32,8 +32,6 @@ using namespace rapidjson;
 
 #include "AutoMode.hh"
 
-#define humidexSwitchOff 19
-#define humidexConsigne  18
 
   /***********************************************************************/
 
@@ -118,9 +116,10 @@ using namespace rapidjson;
       {
 	// if the temp/hygro has been reached
         if (  ( currentMode == Mode::absent && tempCorr > 13.0 )
-           || ( currentMode != Mode::absent && tempCorr > 19.0 )
-	   || ( openWeatherClient->isClearForcast() && tempCorr >= 19.0 - 1.0 )
-           || shutdownPeriod || (veryColdCondition && tempCorr >= 17.5 - 1.0) )
+           || ( currentMode != Mode::absent && tempCorr > 18.5 )
+	   || ( openWeatherClient->isClearForcast() && tempCorr >= 18.5 - 1.0 )
+           || ( shutdownPeriod && !veryColdCondition ) 
+	   || ( veryColdCondition && tempCorr >= 18.5 - 2.0 ) )
         {
   	  NVJ_LOG->append(NVJ_INFO, "Stop Cond: shutdownPeriod=" + to_string(shutdownPeriod) + ", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() ) + ", currentMode=" + to_string(static_cast<int>(currentMode)) + ", veryColdCondition="+to_string(veryColdCondition) );
           buttonControl->stop();
@@ -132,10 +131,10 @@ using namespace rapidjson;
         // else
         short deltaPower = 0;
 
-        if (currentMode == Mode::absent)
+        if (currentMode == Mode::absent || veryColdCondition)
           deltaPower = 1 - lcdReader->getPower();
         else
-            deltaPower = std::min ( veryColdCondition?2:6, (short)(18.0 - tempCorr ) + 1) - lcdReader->getPower(); // limited in veryColdCondition
+            deltaPower = std::min ( 6, (short)(18.0 - tempCorr ) + 1) - lcdReader->getPower();
 
         if (deltaPower != 0)
 	{
