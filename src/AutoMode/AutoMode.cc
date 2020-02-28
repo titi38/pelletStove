@@ -56,8 +56,10 @@ using namespace rapidjson;
   {
    bool shutdownPeriod = false;
    bool needCleaning = false;
-
    bool veryColdCondition = false;
+
+   std::chrono::time_point<std::chrono::system_clock> startTime=std::chrono::system_clock::now()- std::chrono::minutes(90);
+   std::chrono::time_point<std::chrono::system_clock> stopTime(startTime);
 
    sleep(5);
 
@@ -115,15 +117,18 @@ using namespace rapidjson;
       if ( operatingMode == OperatingMode::on )
       {
 	// if the temp/hygro has been reached
-        if (  ( currentMode == Mode::absent && tempCorr > 13.0 )
-           || ( currentMode != Mode::absent && tempCorr > 18.5 )
-	   || ( openWeatherClient->isClearForcast() && tempCorr >= 18.5 - 1.0 )
-           || ( shutdownPeriod && !veryColdCondition ) 
-	   || ( veryColdCondition && tempCorr >= 18.5 - 2.0 ) )
-        {
+        if ( (  
+	       ( currentMode == Mode::absent && tempCorr > 13.0 )
+            || ( currentMode != Mode::absent && tempCorr > 18.5 )
+	    || ( openWeatherClient->isClearForcast() && tempCorr >= 18.5 - 1.0 )
+            || ( shutdownPeriod && !veryColdCondition ) 
+	    || ( veryColdCondition && tempCorr >= 18.5 - 2.0 ) )
+          && ( std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now()-startTime).count() >= 90 ) )
+	{
   	  NVJ_LOG->append(NVJ_INFO, "Stop Cond: shutdownPeriod=" + to_string(shutdownPeriod) + ", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() ) + ", currentMode=" + to_string(static_cast<int>(currentMode)) + ", veryColdCondition="+to_string(veryColdCondition) );
           buttonControl->stop();
-          veryColdCondition = false;
+          stopTime=std::chrono::system_clock::now();
+	  veryColdCondition = false;
           needCleaning = true;
           sleep(60*60); // 1h
           continue;
@@ -131,10 +136,10 @@ using namespace rapidjson;
         // else
         short deltaPower = 0;
 
-        if (currentMode == Mode::absent || veryColdCondition)
+        if (currentMode == Mode::absent || ( veryColdCondition && !shutdownPeriod ) )
           deltaPower = 1 - lcdReader->getPower();
         else
-            deltaPower = std::min ( 6, (short)(18.0 - tempCorr ) + 1) - lcdReader->getPower();
+          deltaPower = std::min ( 6, (short)(18.0 - tempCorr ) + 1) - lcdReader->getPower();
 
         if (deltaPower != 0)
 	{
@@ -149,11 +154,13 @@ using namespace rapidjson;
       if (  ( operatingMode == OperatingMode::off )
          && !( shutdownPeriod && !veryColdCondition )
 	 && ( tempCorr < 17.5 )
-         && !( openWeatherClient->isClearForcast() && tempCorr >= 17.5 - 1.0 ) )
+         && !( openWeatherClient->isClearForcast() && tempCorr >= 17.5 - 1.0 ) 
+	 && ( std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now()-stopTime).count() >= 90 ) )
       {
 	NVJ_LOG->append(NVJ_INFO, "Start Cond: tempCorr="+ to_string(tempCorr) +", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() )
 					+ ", currentMode=" + to_string(static_cast<int>(currentMode)) + ", veryColdCondition="+to_string(veryColdCondition) );
         buttonControl->start();
+	startTime=std::chrono::system_clock::now();
         sleep(20*60); // 20mn
         continue;
       }
