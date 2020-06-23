@@ -25,7 +25,7 @@
 
 #include <unistd.h>
 #include <ctime>
-
+#include <cmath>
 #include "rapidjson/document.h"    	// rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h"  	// for stringify JSON
 using namespace rapidjson;
@@ -57,6 +57,8 @@ using namespace rapidjson;
    bool shutdownPeriod = false;
    bool needCleaning = false;
    bool veryColdCondition = false;
+
+   double tempCorr = .0;
 
    std::chrono::time_point<std::chrono::system_clock> startTime=std::chrono::system_clock::now()- std::chrono::minutes(90);
    std::chrono::time_point<std::chrono::system_clock> stopTime(startTime);
@@ -94,10 +96,20 @@ using namespace rapidjson;
       double temp  = dhtReader->getTemp();
       double humi = dhtReader->getHumi();
       if ( ( temp < -100.0 ) || (temp > 100.0) || ( humi < .0 ) || (humi > 100.0) )
-	      continue;
+      {
+	NVJ_LOG->append(NVJ_INFO, "Bad values of temperature/hygro:  temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", re-read" );
+	sleep(10);	
+        continue;
+      }
 
-      double tempCorr = temp - humi / 75.0;
-
+      double tempCorrOld = tempCorr;
+      tempCorr = temp - humi / 75.0;
+      if (std::abs( tempCorrOld - tempCorr ) > 1.0)
+      {
+        NVJ_LOG->append(NVJ_INFO, "Big difference in temperature/hygro:  temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", tempCorrOld=" + to_string( tempCorrOld ) +", tempCorr=" + to_string( tempCorr ) + ", re-read" );	
+	sleep(10);
+	continue;
+      }
       shutdownPeriod = ( tm_local->tm_hour >= 22 || tm_local->tm_hour < 5 ) // 22 to 6 hours : off dans tous les modes
                     || ( currentMode == Mode::normal 
 			 && tm_local->tm_hour >= 8 && tm_local->tm_hour < 17 
