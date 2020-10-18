@@ -132,7 +132,7 @@ using namespace rapidjson;
         if ( (  
 	       ( currentMode == Mode::absent && tempCorr > 13.0 )
             || ( currentMode != Mode::absent && tempCorr > 18.5 )
-	    || ( openWeatherClient->isClearForcast() && tempCorr >= 18.5 - 1.0 )
+	    || ( tm_local->tm_hour >= 9 && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast() && tempCorr >= 18.5 - 1.0 )
             || ( shutdownPeriod && !veryColdCondition ) 
 	    || ( veryColdCondition && tempCorr >= 18.5 - 2.0 ) )
           && ( std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now()-startTime).count() >= 90 ) )
