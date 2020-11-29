@@ -131,10 +131,11 @@ using namespace rapidjson;
 	// if the temp/hygro has been reached
         if ( (  
 	       ( currentMode == Mode::absent && tempCorr > 13.0 )
-            || ( currentMode != Mode::absent && tempCorr > 18.5 )
-	    || ( tm_local->tm_hour >= 9 && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast() && tempCorr >= 18.5 - 1.0 )
+            || ( currentMode != Mode::absent && tempCorr > 19.0 )
+	    || ( tm_local->tm_hour >= ( 9 + (tm_local->tm_mon >= 10 || tm_local->tm_mon <=1)?2:0 ) && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast() 
+		    && tempCorr >= 19.0 - 1.5 )
             || ( shutdownPeriod && !veryColdCondition ) 
-	    || ( veryColdCondition && tempCorr >= 18.5 - 2.0 ) )
+	    || ( veryColdCondition && tempCorr >= 19.00 - 2.5 ) )
           && ( std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now()-startTime).count() >= 90 ) )
 	{
   	  NVJ_LOG->append(NVJ_INFO, "Stop Cond: shutdownPeriod=" + to_string(shutdownPeriod) + ", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() ) + ", currentMode=" + to_string(static_cast<int>(currentMode)) + ", veryColdCondition="+to_string(veryColdCondition) );
@@ -151,7 +152,7 @@ using namespace rapidjson;
         if (currentMode == Mode::absent || ( veryColdCondition && !shutdownPeriod ) )
           deltaPower = 1 - lcdReader->getPower();
         else
-          deltaPower = std::min ( 6, (short)(18.0 - tempCorr ) + 1) - lcdReader->getPower();
+          deltaPower = std::min ( 6, (short)(18.5 - tempCorr ) + 1) - lcdReader->getPower();
 
         if (deltaPower != 0)
 	{
@@ -165,9 +166,11 @@ using namespace rapidjson;
       // if the pellet is stopped: startCond ?
       if (  ( operatingMode == OperatingMode::off )
          && !( shutdownPeriod && !veryColdCondition )
-	 && ( tempCorr < 17.5 )
-         && !( openWeatherClient->isClearForcast() && tempCorr >= 17.5 - 1.0 ) 
-	 && ( std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now()-stopTime).count() >= 90 ) )
+	 && ( tempCorr < 18.0 )
+         && !( tm_local->tm_hour >= ( 9 + (tm_local->tm_mon >= 10 || tm_local->tm_mon <=1)?2:0 ) && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast() 
+                    && tempCorr >= 18.0 - 1.0 ) 
+	 && ( std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now()-stopTime).count() >= 90 )
+	 && !(tm_local->tm_hour == 21 && tm_local->tm_min > 30) )
       {
 	NVJ_LOG->append(NVJ_INFO, "Start Cond: tempCorr="+ to_string(tempCorr) +", temp=" + to_string( temp ) + ", humi=" + to_string( humi ) + ", forecast=" + to_string( openWeatherClient->isClearForcast() )
 					+ ", currentMode=" + to_string(static_cast<int>(currentMode)) + ", veryColdCondition="+to_string(veryColdCondition) );
