@@ -196,8 +196,11 @@
   void ButtonControl::stop()
   {
     NVJ_LOG->append(NVJ_INFO, "ButtonControl::stop()");
+    bool wasOn = lcdReader->getCurrentOperatingMode() == OperatingMode::on;
     pressButton(ControlButtons::off, ButtonPressionDuration::longer);
-    lcdReader->setStopping();
+     
+    if (wasOn)
+      lcdReader->setStopping();
   }
 
   /***********************************************************************/

@@ -152,7 +152,7 @@ using namespace rapidjson;
         if (currentMode == Mode::absent || ( veryColdCondition && !shutdownPeriod ) )
           deltaPower = 1 - lcdReader->getPower();
         else
-          deltaPower = std::min ( 6, (short)(18.5 - tempCorr ) + 1) - lcdReader->getPower();
+          deltaPower = std::min ( 6, (short)(18.75 - tempCorr ) + 1) - lcdReader->getPower();
 
         if (deltaPower != 0)
 	{
