@@ -113,7 +113,7 @@ using namespace rapidjson;
 
     histDistance[nbDistance%GAUGE_NBVAL] = chrono::duration_cast<chrono::nanoseconds>(endEcho - startEcho).count() * 1e-9 * 17150; 
 
-    NVJ_LOG->append(NVJ_INFO, "Gauge : dist=" + to_string( getAvgDistance() ) + "cm, remaining=" + to_string( getLevel() ) + "Kg" + ", lastReadDist="+ to_string(histDistance[nbDistance%GAUGE_NBVAL]) +", nbLow="+to_string(nbLow)+", nbHigh="+to_string(nbHigh));
+    NVJ_LOG->append(NVJ_DEBUG, "Gauge last mesure : dist=" + to_string( getAvgDistance() ) + "cm, remaining=" + to_string( getLevel() ) + "Kg" + ", lastReadDist="+ to_string(histDistance[nbDistance%GAUGE_NBVAL]) +", nbLow="+to_string(nbLow)+", nbHigh="+to_string(nbHigh));
     nbDistance++;
 
   } 
@@ -154,7 +154,7 @@ using namespace rapidjson;
   { 
     while ( !exiting )
     {
-      sleep(3);
+      sleep(5);
       readMesure();
     }
   }

@@ -147,7 +147,7 @@ using namespace rapidjson;
   	  humi=h;
 	}
 
-        NVJ_LOG->append(NVJ_INFO, string ("new Dht Values: Humidity = ") + to_string(humi) + ", Temperature = " + to_string(temp) + "°C" );
+        NVJ_LOG->append(NVJ_DEBUG, string ("new Dht Values: Humidity = ") + to_string(humi) + ", Temperature = " + to_string(temp) + "°C" );
       }
 
       delay( 2000 );

@@ -125,6 +125,9 @@ using namespace rapidjson;
         veryColdCondition = true;
       }
 
+      if ( !shutdownPeriod ) // only in shutdownPeriod
+	veryColdCondition = false;
+
       // if the pellet is running...
       if ( operatingMode == OperatingMode::on )
       {
