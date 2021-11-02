@@ -34,27 +34,27 @@
 
 using namespace std;
 
-  /**
-  * LogWebBuffer - LogOutput 
-  */
-  class LogWebBuffer : public LogOutput
-  {
-    public:
-      LogWebBuffer();
-      ~LogWebBuffer();
+/**
+* LogWebBuffer - LogOutput
+*/
+class LogWebBuffer : public LogOutput
+{
+  public:
+    LogWebBuffer ();
+    ~LogWebBuffer ();
 
-      void append(const NvjLogSeverity& l, const std::string& m, const std::string &details);
-      void initialize();
-      string getJsonLogBuffer(const int decalageHoraire, int prevId=-1);
+    void append ( const NvjLogSeverity &l, const std::string &m, const std::string &details );
+    void initialize ();
+    string getJsonLogBuffer ( const int decalageHoraire, int prevId = -1 );
 
-     private:
-      string logMessages[WEBBUFFER_NBLINES]; // 150 lignes
-      string logDetails[WEBBUFFER_NBLINES]; // 150 lignes
-      NvjLogSeverity logSeverity[WEBBUFFER_NBLINES];
-      unsigned firstLine, nextLine;
-      pthread_mutex_t weblog_mutex;
- 
-  };
-  
+  private:
+    string logMessages[WEBBUFFER_NBLINES]; // 150 lignes
+    string logDetails[WEBBUFFER_NBLINES]; // 150 lignes
+    NvjLogSeverity logSeverity[WEBBUFFER_NBLINES];
+    unsigned firstLine, nextLine;
+    pthread_mutex_t weblog_mutex;
+
+};
+
 
 #endif

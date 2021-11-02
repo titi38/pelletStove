@@ -40,66 +40,67 @@
 #include "AutoMode.hh"
 
 
-  /****************************************************************************
-  * PelletInfoMonitor - libnavajo DynamicPage 
-  ****************************************************************************/
+/****************************************************************************
+* PelletInfoMonitor - libnavajo DynamicPage
+****************************************************************************/
 
-  class PelletInfoMonitor: public DynamicPage
-  { 
-    bool getPage(HttpRequest* request, HttpResponse *response); 
+class PelletInfoMonitor : public DynamicPage
+{
+    bool getPage ( HttpRequest *request, HttpResponse *response );
 
-    DhtReader* dhtReader;
-    LcdReader* lcdReader;
+    DhtReader *dhtReader;
+    LcdReader *lcdReader;
     Gauge *gauge;
-    OpenWeatherClient* openWeatherClient;
-    AutoMode* autoMode;
+    OpenWeatherClient *openWeatherClient;
+    AutoMode *autoMode;
 
-    public:
-      PelletInfoMonitor(DhtReader *dr, LcdReader *lr, Gauge *g, OpenWeatherClient *owc, AutoMode *am): 
-          dhtReader(dr), lcdReader (lr), gauge(g), openWeatherClient(owc), autoMode(am) {};
-  };
+  public:
+    PelletInfoMonitor ( DhtReader *dr, LcdReader *lr, Gauge *g, OpenWeatherClient *owc, AutoMode *am ) :
+        dhtReader (dr), lcdReader (lr), gauge (g), openWeatherClient (owc), autoMode (am)
+    { };
+};
 
-  /****************************************************************************
-  * PelletCommand - libnavajo DynamicPage 
-  ****************************************************************************/
+/****************************************************************************
+* PelletCommand - libnavajo DynamicPage
+****************************************************************************/
 
-  class PelletCommand: public DynamicPage
-  { 
-    bool getPage(HttpRequest* request, HttpResponse *response); 
+class PelletCommand : public DynamicPage
+{
+    bool getPage ( HttpRequest *request, HttpResponse *response );
 
-    ButtonControl* buttonControl;
-    LcdReader* lcdReader;
-    AutoMode* autoMode;
+    ButtonControl *buttonControl;
+    LcdReader *lcdReader;
+    AutoMode *autoMode;
 
     mutable mutex mutex_command;
 
-    public:
-      PelletCommand(ButtonControl *bc, LcdReader *lr, AutoMode *am): 
-          buttonControl(bc), lcdReader (lr), autoMode(am)  {};
-  };
+  public:
+    PelletCommand ( ButtonControl *bc, LcdReader *lr, AutoMode *am ) :
+        buttonControl (bc), lcdReader (lr), autoMode (am)
+    { };
+};
 
-  /****************************************************************************
-  * PelletService - generic class to handle REST API
-  ****************************************************************************/
+/****************************************************************************
+* PelletService - generic class to handle REST API
+****************************************************************************/
 
-  class PelletService : public DynamicRepository
-  {
+class PelletService : public DynamicRepository
+{
 
     PelletInfoMonitor *pelletInfoMonitor = nullptr;
     PelletCommand *pelletCommand = nullptr;
 
-    ButtonControl *buttonControl=nullptr;
-    DhtReader *dhtReader=nullptr;
-    LcdReader *lcdReader=nullptr;
-    Gauge *gauge=nullptr;
+    ButtonControl *buttonControl = nullptr;
+    DhtReader *dhtReader = nullptr;
+    LcdReader *lcdReader = nullptr;
+    Gauge *gauge = nullptr;
     OpenWeatherClient openWeatherClient;
-    AutoMode *autoMode=nullptr;
+    AutoMode *autoMode = nullptr;
 
-    public:
-      PelletService();
-      ~PelletService();
-  };
+  public:
+    PelletService ();
+    ~PelletService ();
+};
 
-  
 
 #endif

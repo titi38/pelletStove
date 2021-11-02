@@ -39,31 +39,34 @@
 
 using namespace std;
 
-  /**
-  * AutoMode
-  */
-  class AutoMode
-  {
-    public:
-      enum class Mode : int { off, normal, vacation, absent, custom };
-      void start(Mode m);
-      void stop();
-      std::string getInfoJson() const;
-      AutoMode(ButtonControl *bc, DhtReader *dht, LcdReader *lcd, OpenWeatherClient* owc);
-      ~AutoMode();
+/**
+* AutoMode
+*/
+class AutoMode
+{
+  public:
+    enum class Mode : int
+    {
+        off, normal, vacation, absent, custom
+    };
+    void start ( Mode m );
+    void stop ();
+    std::string getInfoJson () const;
+    AutoMode ( ButtonControl *bc, DhtReader *dht, LcdReader *lcd, OpenWeatherClient *owc );
+    ~AutoMode ();
 
-    private:
-      void loop();
+  private:
+    void loop ();
 
-      volatile Mode currentMode=Mode::off;
-      ButtonControl *buttonControl=nullptr;
-      DhtReader *dhtReader=nullptr;
-      LcdReader *lcdReader=nullptr;
-      OpenWeatherClient* openWeatherClient=nullptr;
+    volatile Mode currentMode = Mode::off;
+    ButtonControl *buttonControl = nullptr;
+    DhtReader *dhtReader = nullptr;
+    LcdReader *lcdReader = nullptr;
+    OpenWeatherClient *openWeatherClient = nullptr;
 
-      thread *thread_loop=nullptr;
-      volatile bool exiting = false;
-  };
-  
+    thread *thread_loop = nullptr;
+    volatile bool exiting = false;
+};
+
 
 #endif

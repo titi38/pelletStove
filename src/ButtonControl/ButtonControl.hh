@@ -32,37 +32,43 @@
 using namespace std;
 
 
-  /**
-  * ButtonControl - generic class to handle the relay
-  */
-  class ButtonControl
-  {
+/**
+* ButtonControl - generic class to handle the relay
+*/
+class ButtonControl
+{
 
-    public:
-      ButtonControl(LcdReader *lcd);
+  public:
+    ButtonControl ( LcdReader *lcd );
 
-      enum class ControlButtons : int { on=4, off=2, up=5, down=3 /*Arduino: on=6, off=4, up=7, down=5*/  } ;
-      enum class ButtonPressionDuration { quick, normal, longer, automatic };
+    enum class ControlButtons : int
+    {
+        on = 4, off = 2, up = 5, down = 3 /*Arduino: on=6, off=4, up=7, down=5*/
+    };
+    enum class ButtonPressionDuration
+    {
+        quick, normal, longer, automatic
+    };
 
-      void pressButton(const ControlButtons b, 
-		     const ButtonPressionDuration duration=ButtonPressionDuration::quick);
-      void press2Buttons(const ControlButtons b1, const ControlButtons b2);
+    void pressButton ( const ControlButtons b,
+                       const ButtonPressionDuration duration = ButtonPressionDuration::quick );
+    void press2Buttons ( const ControlButtons b1, const ControlButtons b2 );
 
-      void goToMainMenu();
-      void incPower(short step);
-      void decPower(short step);
-      void incTempWater(short stepC);
-      void decTempWater(short stepC);
-      void resetError();
-      void removeAllActivePrograms();
-      void start();
-      void stop();
+    void goToMainMenu ();
+    void incPower ( short step );
+    void decPower ( short step );
+    void incTempWater ( short stepC );
+    void decTempWater ( short stepC );
+    void resetError ();
+    void removeAllActivePrograms ();
+    void start ();
+    void stop ();
 
-    private:
-      LcdReader *lcdReader;
-      void initPinMode();
-      void setButton(const ControlButtons b, const int state);
-  };
-  
+  private:
+    LcdReader *lcdReader;
+    void initPinMode ();
+    void setButton ( const ControlButtons b, const int state );
+};
+
 
 #endif

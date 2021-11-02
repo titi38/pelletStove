@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-// DhtReader.hh : Read DHT sensor values, and store them...
+// Stats.hh : Collect Temp/Hygro/Run statistics
 //
 //------------------------------------------------------------------------------
 //
@@ -23,11 +23,10 @@
 //
 //------------------------------------------------------------------------------
 
-#ifndef DHTREADER_HH_
-#define DHTREADER_HH_
+#ifndef STATS_HH_
+#define STATS_HH_
 
 #include <string>
-#include <thread>
 #include "libnavajo/libnavajo.hh"
 
 
@@ -35,29 +34,45 @@ using namespace std;
 
 
 /**
-* DhtReader - generic class to read temperature and humidity
+* Stats - generic class to collect statistics
 */
-class DhtReader
+class Stats
 {
-    int dht_dat[5] = { 0, 0, 0, 0, 0 };
-    bool read_dht_dat ();
-    void loop ();
-    void updateStats ();
+    volatile double sumTemp = 0, sumHumi = 0, sumRun = 0;
+    volatile int nbHTVal = 0, nbRunVal = 0;
+    volatile int nbStats = 0, idxStats = 0;
+    volatile double dailyStats[24][4][3]; // 24hours x 4 quartersOfHour x 3 values(temp/hum/run)
 
-    thread *thread_loop = nullptr;
-    volatile bool exiting = false;
+    static Stats *theStats;
 
-    volatile double humi = 1234.0, temp = 1234.0;
+  protected:
+    Stats ();
+    virtual ~Stats ();
 
   public:
+    /**
+     * getInstance is part of the GeoIpListRecorder Singleton implementation
+     * @return the uniq instance of GeoIpListRecorder
+     */
+    inline static Stats* getInstance()
+    {
+      if (theStats == NULL)
+        theStats = new GeoIpListRecorder;
 
-    DhtReader ();
-    ~DhtReader ();
-    double getTemp () const
-      { return temp; };
-    double getHumi () const
-      { return humi; };
-    string getInfoJson () const;
+      return Stats;
+    };
+
+    inline static void freeInstance()
+    {
+      if (theStats != nullptr)
+        delete theStats;
+    };
+
+    void updateIfEndQuarter();
+    void updateHTStats (double temp, double humi);
+    void updateRunStats ( unsigned char runMode);
+
+    string getStatsJson () const;
 
 };
 
