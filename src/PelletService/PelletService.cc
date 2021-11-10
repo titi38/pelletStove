@@ -262,7 +262,13 @@ bool PelletCommand::PelletCommand::getPage ( HttpRequest *request, HttpResponse 
                         }
                       }
                       else
-                        errMessage = "Unknown command";
+                        if ( request->hasParameter ("shutdown"))
+                        {
+                          NVJ_LOG->append (NVJ_INFO, "Shutdown command received...");
+                          execl (getenv ("SHELL"), "sh", "-c", "sudo shutdown", NULL);
+                        }
+                        else
+                          errMessage = "Unknown command";
 
   writer.StartObject ();
 
