@@ -132,9 +132,9 @@ string Stats::getStatsJson () const
     for ( int idx = ( idxStats - nbStats ) % ( 24 * 4 ); idx != idxStats; idx++ )
     {
       writer.StartArray ();
-      writer.Double (dailyStats[ idxStats ][ 0 ]); // Temp
-      writer.Double (dailyStats[ idxStats ][ 1 ]); // Humidity
-      writer.Double (dailyStats[ idxStats ][ 2 ]); // Run
+      writer.Double (dailyStats[ idx ][ 0 ]); // Temp
+      writer.Double (dailyStats[ idx ][ 1 ]); // Humidity
+      writer.Double (dailyStats[ idx ][ 2 ]); // Run
       writer.EndArray ();
     }
   }
