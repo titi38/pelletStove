@@ -27,7 +27,8 @@
 #include "rapidjson/prettywriter.h"    // for stringify JSON
 
 #include "Stats.hh"
-
+#include <ctime>
+#include <chrono>
 
 using namespace rapidjson;
 
@@ -56,14 +57,14 @@ Stats::~Stats ()
 
 void Stats::updateIfEndQuarter ()
 {
-  std::time_t tt = system_clock::to_time_t (std::chrono::system_clock::now ());
+  std::time_t tt = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now ());
   std::tm *tm = std::localtime (&tt);
 
-  if (( currentHTQuarter != tm->tm_min / 4 ) && nbVal ) // update prev Quarter
+  if (( currentTimeStat != tm->tm_min / 15 ) && (currentTimeStat != FIRST_TIMESTAT ) ) // update prev Quarter
   {
-    dailyStats[ idxStats ][ 0 ] = sumTemp / nbHTVal;
-    dailyStats[ idxStats ][ 1 ] = sumHumi / nbHTVal;
-    dailyStats[ idxStats ][ 2 ] = sumRun / nbRunVal;
+    dailyStats[ idxStats ][ 0 ] = (nbHTVal>0) ? sumTemp / nbHTVal : 0;
+    dailyStats[ idxStats ][ 1 ] = (nbHTVal>0) ? sumHumi / nbHTVal : 0;
+    dailyStats[ idxStats ][ 2 ] = (nbRunVal>0) ? sumRun / nbRunVal : 0;
 
     sumTemp = 0;
     sumHumi = 0;
@@ -76,9 +77,12 @@ void Stats::updateIfEndQuarter ()
     if ( nbStats < 24 * 4 )
       nbStats++;
 
-    currentHTQuarter = tm->tm_min / 4;
+    currentTimeStat = tm->tm_min / 15;
   }
 
+  if ( (currentTimeStat == FIRST_TIMESTAT ) )
+    currentTimeStat = tm->tm_min / 15;
+ 
 }
 
 /***********************************************************************/
@@ -87,8 +91,8 @@ void Stats::updateHTStats ( double temp, double humi )
 {
   updateIfEndQuarter ();
 
-  sumTemp += temp ();
-  sumHumi += humi ();
+  sumTemp += temp ;
+  sumHumi += humi ;
   nbHTVal++;
 }
 
@@ -107,18 +111,19 @@ void Stats::updateRunStats ( unsigned char runMode )
 
 string Stats::getStatsJson () const
 {
-  std::time_t tt = system_clock::to_time_t (std::chrono::system_clock::now ());
+  std::time_t tt = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now ());
   std::tm *tm = std::localtime (&tt);
 
   string resultat = "";
   GenericStringBuffer <UTF8<>> buffer;
   Writer <GenericStringBuffer<UTF8<> >> writer (buffer);
+  writer.SetMaxDecimalPlaces(2);
   writer.StartObject ();
 
   writer.String ("hour");
-  writer.Integer (tm->tm_hour);
+  writer.Int (tm->tm_hour);
   writer.String ("quarter");
-  writer.Integer (currentQuarter);
+  writer.Int (currentTimeStat);
 
   writer.String ("stats");
   writer.StartArray ();

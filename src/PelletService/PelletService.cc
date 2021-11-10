@@ -25,11 +25,13 @@
 
 
 
+#include <unistd.h>
 #include <csignal>
 #include <string.h>
 #include <wiringPi.h>
 
 #include "PelletService.hh"
+#include "Stats.hh"
 
 #include "rapidjson/document.h"      // rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h"    // for stringify JSON
@@ -84,6 +86,17 @@ bool PelletInfoMonitor::PelletInfoMonitor::getPage ( HttpRequest *request, HttpR
   response->setCORS (/*true, false, "http://192."*/);
   return fromString (json, response);
 }
+
+
+/***********************************************************************/
+
+bool PelletStats::PelletStats::getPage ( HttpRequest *request, HttpResponse *response )
+{
+  std::string json = Stats::getInstance()->getStatsJson();
+  response->setCORS (/*true, false, "http://192."*/);
+  return fromString (json, response);
+}
+
 
 /***********************************************************************/
 
@@ -313,17 +326,23 @@ PelletService::PelletService ()
 
   autoMode = new AutoMode (buttonControl, dhtReader, lcdReader, &openWeatherClient);
 
+  pelletStats = new PelletStats ();
+  add ("stats.json", pelletStats);
+
   pelletInfoMonitor = new PelletInfoMonitor (dhtReader, lcdReader, gauge, &openWeatherClient, autoMode);
   add ("info.json", pelletInfoMonitor);
 
   pelletCommand = new PelletCommand (buttonControl, lcdReader, autoMode);
   add ("command.json", pelletCommand);
+
+
 }
 
 /***********************************************************************/
 
 PelletService::~PelletService ()
 {
+  delete pelletStats;
   delete pelletCommand;
   delete pelletInfoMonitor;
   delete autoMode;

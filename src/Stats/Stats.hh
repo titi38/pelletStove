@@ -29,6 +29,7 @@
 #include <string>
 #include "libnavajo/libnavajo.hh"
 
+#define FIRST_TIMESTAT 255
 
 using namespace std;
 
@@ -41,7 +42,8 @@ class Stats
     volatile double sumTemp = 0, sumHumi = 0, sumRun = 0;
     volatile int nbHTVal = 0, nbRunVal = 0;
     volatile int nbStats = 0, idxStats = 0;
-    volatile double dailyStats[24][4][3]; // 24hours x 4 quartersOfHour x 3 values(temp/hum/run)
+    volatile double dailyStats[24*4][3]; // 24hours x 4 quartersOfHour x 3 values(temp/hum/run)
+    volatile unsigned char currentTimeStat = FIRST_TIMESTAT;
 
     static Stats *theStats;
 
@@ -57,9 +59,9 @@ class Stats
     inline static Stats* getInstance()
     {
       if (theStats == NULL)
-        theStats = new GeoIpListRecorder;
+        theStats = new Stats;
 
-      return Stats;
+      return theStats;
     };
 
     inline static void freeInstance()

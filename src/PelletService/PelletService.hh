@@ -44,6 +44,16 @@
 * PelletInfoMonitor - libnavajo DynamicPage
 ****************************************************************************/
 
+class PelletStats : public DynamicPage
+{
+    bool getPage ( HttpRequest *request, HttpResponse *response );
+};
+
+
+/****************************************************************************
+* PelletInfoMonitor - libnavajo DynamicPage
+****************************************************************************/
+
 class PelletInfoMonitor : public DynamicPage
 {
     bool getPage ( HttpRequest *request, HttpResponse *response );
@@ -88,6 +98,7 @@ class PelletService : public DynamicRepository
 {
 
     PelletInfoMonitor *pelletInfoMonitor = nullptr;
+    PelletStats *pelletStats = nullptr;
     PelletCommand *pelletCommand = nullptr;
 
     ButtonControl *buttonControl = nullptr;

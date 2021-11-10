@@ -76,6 +76,7 @@ include_directories (
   ${PROJECT_SOURCE_DIR}/LcdReader
   ${PROJECT_SOURCE_DIR}/Gauge
   ${PROJECT_SOURCE_DIR}/AutoMode
+  ${PROJECT_SOURCE_DIR}/Stats
   )
   
 ###################             Sources files           #######################
@@ -89,6 +90,7 @@ file(GLOB sources_cpp
   ${PROJECT_SOURCE_DIR}/LcdReader/LcdReader.cc
   ${PROJECT_SOURCE_DIR}/Gauge/Gauge.cc
   ${PROJECT_SOURCE_DIR}/AutoMode/AutoMode.cc
+  ${PROJECT_SOURCE_DIR}/Stats/Stats.cc
   #  ${PROJECT_SOURCE_DIR}/LogWebBuffer/LogWebBuffer.cc
   )
   
