@@ -136,7 +136,6 @@ void DhtReader::loop ()
   while ( !exiting )
   {
     double h = .0, t = .0;
-
     if ( read_dht_dat ())
     {
       h = ( double ) (( dht_dat[ 0 ] << 8 ) + dht_dat[ 1 ] ) / 10;
@@ -157,7 +156,6 @@ void DhtReader::loop ()
 
       Stats::getInstance ()->updateHTStats (temp, humi);
     }
-
     delay (2000); // wait 2 seconds
   }
 

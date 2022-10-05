@@ -33,6 +33,15 @@ using namespace rapidjson;
 
 #include "AutoMode.hh"
 
+#define OUTDOORTEMPCORR ( openWeatherClient->getTempForecast() - (double)(openWeatherClient->getHumiForecast())/75.0 )
+
+#define TEMP_CONSIGNE 17.5
+#define TEMP_VERYCOLD 14.5
+#define TEMP_CONSIGNE_ABSENCE  12.0
+#define DIFF_TEMP_STARTUP ((OUTDOORTEMPCORR<3.0)?1:.0  + (OUTDOORTEMPCORR<12.0)?1:.0)
+#define DIFF_TEMP_CLEARCAST 1.5
+#define DIFF_TEMP_VERYCOLD 2.5
+
 
 /***********************************************************************/
 
@@ -60,6 +69,8 @@ void AutoMode::loop ()
   bool veryColdCondition = false;
 
   double tempCorr = .0;
+
+  unsigned char nbStrangeTemperature=0;
 
   std::chrono::time_point <std::chrono::system_clock> startTime =
       std::chrono::system_clock::now () - std::chrono::minutes (90);
@@ -109,15 +120,23 @@ void AutoMode::loop ()
 
     double tempCorrOld = tempCorr;
     tempCorr = temp - humi / 75.0;
-    if ( std::abs (tempCorrOld - tempCorr) > 1.0 )
+// Cas 1 : 1 lecture avec résultat à ignorer
+// Cas 2 : 2 lectures qui se confirment l'écart
+    if ( tempCorrOld != .0 && std::abs (tempCorrOld - tempCorr) > 1.0 && nbStrangeTemperature<2)
     {
+
       NVJ_LOG->append (NVJ_INFO,
                        "Big difference in temperature/hygro:  temp=" + to_string (temp) + ", humi=" + to_string (humi)
                        + ", tempCorrOld=" + to_string (tempCorrOld) + ", tempCorr=" + to_string (tempCorr)
                        + ", re-read");
+tempCorr = tempCorrOld;
+nbStrangeTemperature++;
       sleep (10);
       continue;
     }
+    else
+      nbStrangeTemperature=0;
+
     shutdownPeriod = ( tm_local->tm_hour >= 22 || tm_local->tm_hour < 5 ) // 22 to 6 hours : off dans tous les modes
                      || ( currentMode == Mode::normal
                           && tm_local->tm_hour >= 8 && tm_local->tm_hour < 17
@@ -129,7 +148,7 @@ void AutoMode::loop ()
 
     // shutdownPeriod... but it's cold !!!
     if ( !veryColdCondition && shutdownPeriod && operatingMode == OperatingMode::off
-         && currentMode != Mode::absent && ( tempCorr < 17.5 - 3.0 )) // 3°C de moins : rallumage anticipé
+         && currentMode != Mode::absent && ( tempCorr < TEMP_VERYCOLD )) // 3°C de moins : rallumage anticipé
     {
       veryColdCondition = true;
     }
@@ -142,13 +161,13 @@ void AutoMode::loop ()
     {
       // if the temp/hygro has been reached
       if ((
-              ( currentMode == Mode::absent && tempCorr > 13.0 )
-              || ( currentMode != Mode::absent && tempCorr > 19.0 )
+              ( currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE )
+              || ( currentMode != Mode::absent && tempCorr > TEMP_CONSIGNE )
               || ( tm_local->tm_hour >= ( 9 + ( tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1 ) ? 2 : 0 )
                    && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast ()
-                   && tempCorr >= 19.0 - 1.5 )
+                   && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_CLEARCAST )
               || ( shutdownPeriod && !veryColdCondition )
-              || ( veryColdCondition && tempCorr >= 19.00 - 2.5 ))
+              || ( veryColdCondition && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_VERYCOLD ))
           && ( std::chrono::duration_cast<std::chrono::minutes> (std::chrono::system_clock::now () - startTime).count ()
                >= 90 ))
       {
@@ -171,7 +190,7 @@ void AutoMode::loop ()
       if ( currentMode == Mode::absent || ( veryColdCondition && !shutdownPeriod ))
         deltaPower = 1 - lcdReader->getPower ();
       else
-        deltaPower = std::min (6, ( short ) ( 18.75 - tempCorr ) + 1) - lcdReader->getPower ();
+        deltaPower = std::min (6, ( short ) ( TEMP_CONSIGNE - tempCorr ) + 1) - lcdReader->getPower ();
 
       if ( deltaPower != 0 )
       {
@@ -187,7 +206,7 @@ void AutoMode::loop ()
     // if the pellet is stopped: startCond ?
     if (( operatingMode == OperatingMode::off )
         && !( shutdownPeriod && !veryColdCondition )
-        && ( tempCorr < 18.0 )
+        && ( tempCorr < TEMP_CONSIGNE - DIFF_TEMP_STARTUP )
         && !( tm_local->tm_hour >= ( 9 + ( tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1 ) ? 2 : 0 )
               && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast ()
               && tempCorr >= 18.0 - 1.0 )

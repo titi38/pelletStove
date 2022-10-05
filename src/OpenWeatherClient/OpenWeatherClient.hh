@@ -76,8 +76,8 @@ class OpenWeatherClient /**< LocalFlowEntry datatype definition */
 
     int nextDataAvailable = 0;
 
-    double temp = 0, wind_speed = 0, wind_dir = 0;
-    int humi = 0;
+    volatile double temp = 0, wind_speed = 0, wind_dir = 0;
+    volatile int humi = 0;
     string icon;
 
 
@@ -87,6 +87,11 @@ class OpenWeatherClient /**< LocalFlowEntry datatype definition */
     string getInfoJson () const;
     bool isClearForcast () const
     { return icon == "01d" || icon == "02d"; };
+    double getTempForecast() const
+    { return temp; };
+    int getHumiForecast() const
+    { return humi; };
+
 
     char *send_get_http_query ( const string &hostname, const string &url, const string &param = NULL );
     char *send_post_http_query ( const string &hostname, const string &url, const string &param );
