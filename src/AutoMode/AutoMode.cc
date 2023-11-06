@@ -35,9 +35,9 @@ using namespace rapidjson;
 
 #define OUTDOORTEMPCORR ( openWeatherClient->getTempForecast() - (double)(openWeatherClient->getHumiForecast())/75.0 )
 
-#define TEMP_CONSIGNE 17.5
-#define TEMP_VERYCOLD 14.5
-#define TEMP_CONSIGNE_ABSENCE  12.0
+#define TEMP_CONSIGNE 18.5
+#define TEMP_VERYCOLD 15.0
+#define TEMP_CONSIGNE_ABSENCE  13.0
 #define DIFF_TEMP_STARTUP ((OUTDOORTEMPCORR<3.0)?1:.0  + (OUTDOORTEMPCORR<12.0)?1:.0)
 #define DIFF_TEMP_CLEARCAST 1.5
 #define DIFF_TEMP_VERYCOLD 2.5
