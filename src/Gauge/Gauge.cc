@@ -41,6 +41,7 @@ using namespace rapidjson;
 
 Gauge::Gauge ()
 {
+
   if ( wiringPiSetup () == -1 )
     exit (1);
 
@@ -60,7 +61,9 @@ Gauge::Gauge ()
 Gauge::~Gauge ()
 {
   exiting = true;
+
   thread_loop->join ();
+
   NVJ_LOG->append (NVJ_INFO, "Gauge is finished");
 }
 

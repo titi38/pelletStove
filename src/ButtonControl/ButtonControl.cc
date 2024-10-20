@@ -97,7 +97,8 @@ void ButtonControl::press2Buttons ( const ControlButtons b1, const ControlButton
 {
   setButton (b1, HIGH);
   setButton (b2, HIGH);
-  delay (2000); // 2seconds
+  delay (3000); // 2seconds semblaient trop courtes
+  //delay (2000); // 2seconds
   setButton (b1, LOW);
   setButton (b2, LOW);
   delay (500);

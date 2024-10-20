@@ -203,11 +203,11 @@ bool PelletCommand::PelletCommand::getPage ( HttpRequest *request, HttpResponse 
                       string durStr;
                       if ( request->getParameter ("dur", durStr))
                       {
-                        if ( durStr == "quick" )
+                        if ( durStr == "short" )
                           duration = ButtonControl::ButtonPressionDuration::quick;
                         else
                           if ( durStr == "normal" )
-                            duration = ButtonControl::ButtonPressionDuration::longer;
+                            duration = ButtonControl::ButtonPressionDuration::normal;
                           else
                             if ( durStr == "long" )
                               duration = ButtonControl::ButtonPressionDuration::longer;

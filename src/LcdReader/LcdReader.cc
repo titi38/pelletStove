@@ -111,31 +111,28 @@ void LcdReader::setLcdMessage ( const char *msg )
 
   try
   {
-    if ( lcdMessage.substr (0, 10) == "set TRAVAI" )
+    if ( lcdMessage.find("setTRAVAI") != std::string::npos )
       currentOperatingMode = OperatingMode::on;
     else
-      if ( lcdMessage.substr (0, 10) == "  OFF     " )
-      {
-        if ( stopping ) // artificial behavior
-          currentOperatingMode = OperatingMode::stopping;
-        else
-          currentOperatingMode = OperatingMode::off;
-      }
+      if ( lcdMessage.find("ETEINT") != std::string::npos )
+        currentOperatingMode = OperatingMode::off;
       else
-        if ( lcdMessage.substr (0, 6) == "COMNC " )
+        if ( lcdMessage.find("ALLUMA") != std::string::npos )
           currentOperatingMode = OperatingMode::starting;
         else
-          if ( lcdMessage.substr (0, 11) == "  NETTOYAGE" )
+          if ( lcdMessage.find("NETTOYAGE") != std::string::npos )
             currentOperatingMode = OperatingMode::cleaning;
           else
-            if ( lcdMessage.substr (0, 28) == "    ALARME         TEMP FUME" )
+            if ( lcdMessage.find("TEMP FUME") != std::string::npos )
               currentOperatingMode = OperatingMode::alertTempFume;
             else
-              if ( lcdMessage.substr (0, 28) == "    ALARME       TERM- DEPR." )
+              if ( lcdMessage.find("TERM-DEPR") != std::string::npos )
                 currentOperatingMode = OperatingMode::alertTermDepr;
               else
-                if ( lcdMessage.substr (0, 7) == "ATTENTE" )
-                  currentOperatingMode = OperatingMode::delayedStart;
+                if ( lcdMessage.find("ATTENTE") != std::string::npos )
+                  currentOperatingMode = OperatingMode::stopping;
+                
+		//	delayedStart;
 
     if (( currentOperatingMode == OperatingMode::on )
         || ( currentOperatingMode == OperatingMode::off )

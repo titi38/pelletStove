@@ -40,8 +40,8 @@
 
 using namespace rapidjson;
 
-#define SECURE_CIPHER_LIST "RC4-SHA:HIGH:!ADH:!AECDH:!CAMELLIA"
-
+//#define SECURE_CIPHER_LIST "RC4-SHA:HIGH:!ADH:!AECDH:!CAMELLIA"
+#define SECURE_CIPHER_LIST "HIGH:!aNULL:!MD5"
 //------------------------------------------------------------------------------
 
 OpenWeatherClient *OpenWeatherClient::theOpenWeatherClient = NULL;
@@ -68,10 +68,11 @@ void OpenWeatherClient::loop ()
     if ( nextDataAvailable == 0 )
     {
       char *resultJson = nullptr;
+char *beuuug = nullptr;
       try
       {
-        resultJson = send_get_http_query ("api.openweathermap.org", "https://api.openweathermap.org/data/2.5/weather",
-                                          "lat=45.37&lon=5.7&units=metric&cnt=2&APPID=2af48f565fec5c7cdb3600a6270fef5c");
+	beuuug = send_get_http_query ("api.weatherapi.com", "https://api.weatherapi.com/v1/current.json","key=fdbbf4743489484285b115210242809&q=45.36,5.67&aqi=no");
+
         disconnect ();
       }
       catch ( std::runtime_error &e )
@@ -82,40 +83,81 @@ void OpenWeatherClient::loop ()
         continue;
       }
 
-      //  printf(" res1:\n%s\n",resultJson); fflush(NULL);
+if (beuuug == nullptr)
+{
+        NVJ_LOG->append (NVJ_ERROR, string ("OpenWeatherClient failed to send http request"));
+        sleep (10);
+        continue;
+}
+else
+{//  printf(" res1:\n%s\n",resultJson); fflush(NULL);
+
+resultJson = beuuug;
+while (*resultJson != '{' && strlen(resultJson)) {resultJson++;}
+
+char *found = strstr(resultJson, "\n");
+if (found) *found='\0';
+}
       // ---------------------------------
 
       Document document;  // Default template parameter uses UTF8 and MemoryPoolAllocator.
-      if ( document.Parse<0> (resultJson).HasParseError ()
-           || !document.HasMember ("weather")
-           || !document.HasMember ("main")
-           || !document.HasMember ("wind"))
+      if ( document.Parse<0> (resultJson).HasParseError () )
       {
-        NVJ_LOG->append (NVJ_ERROR, "OpenWeatherClient bad json document");
-
-        free (resultJson);
+        NVJ_LOG->append (NVJ_DEBUG, "OpenWeatherClient bad json document", resultJson);
+//printf("%s", resultJson);
+        free (beuuug); //resultJson);
         continue;
       }
 
-      lock_guard <std::mutex> lk (mutex_icon);
+      lock_guard <std::mutex> lk (mutex_values);
 
-      // refresh 10mn
-      nextDataAvailable = 300;
-      temp = document[ "main" ][ "temp" ].GetDouble ();
-      humi = document[ "main" ][ "humidity" ].GetInt ();
-      wind_speed = document[ "wind" ][ "speed" ].GetDouble (),
-          //  wind_dir   = document["wind"]["deg"].GetDouble();
-          icon = document[ "weather" ][ 0 ][ "icon" ].GetString ();
+
+
+      // refresh 15mn
+//      nextDataAvailable = 450;
+
+      if (document.HasMember("current") && document["current"].IsObject())
+      {
+        const rapidjson::Value& current_value = document["current"];
+	if (current_value.HasMember("temp_c") && current_value["temp_c"].IsNumber())
+          temp = current_value[ "temp_c" ].GetDouble ();
+        else temp = 0;
+
+        if (current_value.HasMember("humidity") && current_value["humidity"].IsNumber())
+          humi = current_value[ "humidity" ].GetInt ();
+        else humi = 0;
+ 
+        if (current_value.HasMember("condition") && current_value["condition"].IsObject()) 
+        {	
+          const rapidjson::Value& condition_value = current_value["condition"];
+	  if (condition_value.HasMember("icon") && condition_value["icon"].IsString())
+            icon = condition_value[ "icon" ].GetString(); 
+	  if (condition_value.HasMember("code") && condition_value["code"].IsNumber())
+	    clearForcast =  current_value[ "humidity" ].GetInt () <= 1006 ;
+        }
+
+        if (current_value.HasMember("wind_kph") && current_value["wind_kph"].IsNumber()) 
+          wind_speed = current_value[ "wind_kph" ].GetDouble ();
+        else wind_speed = 0;
+        
+        if (current_value.HasMember("wind_degree") && current_value["wind_degree"].IsNumber())
+            wind_dir   = current_value["wind_degree"].GetDouble();
+        else wind_dir = 0;
+      }
+
 
       // ---------------------------------
 
-      free (resultJson);
+free(beuuug);
+     // free (resultJson);
     }
     else
     {
       nextDataAvailable--;
       sleep (1);
     }
+
+sleep(450);
   }
 }
 
@@ -123,22 +165,36 @@ void OpenWeatherClient::loop ()
 
 string OpenWeatherClient::getInfoJson () const
 {
-  lock_guard <std::mutex> lk (mutex_icon);
+  lock_guard <std::mutex> lk (mutex_values);
   string resultat = "";
+  char timeString[6];  // HH:MM nécessite 5 caractères + 1 pour le terminateur null
+
   GenericStringBuffer <UTF8<>> buffer;
   Writer <GenericStringBuffer<UTF8<> >> writer (buffer);
+ 
   writer.StartObject ();
-  writer.String ("temp");
+ 
+  writer.Key ("temp");
   writer.Double (temp);
-  writer.String ("humi");
+  writer.Key ("humi");
   writer.Int (humi);
-  writer.String ("wind_speed");
+ 
+  writer.Key ("wind_speed");
   writer.Int (wind_speed);
-  writer.String ("wind_dir");
+  writer.Key ("wind_dir");
   writer.Int (wind_dir);
-  writer.String ("icon");
-  string iconURL = "http://openweathermap.org/img/w/" + icon + ".png";
+ 
+ /* writer.Key ("sunrise");
+  strftime(timeString, sizeof(timeString), "%H:%M", &sunrise);
+  writer.String (timeString);
+  writer.Key ("sunset");
+  strftime(timeString, sizeof(timeString), "%H:%M", &sunset);
+  writer.String (timeString);*/
+
+  writer.Key ("icon");
+  string iconURL = "http://" + icon;
   writer.String (iconURL.c_str ());
+ 
   writer.EndObject ();
   resultat = buffer.GetString ();
   buffer.Clear ();
@@ -265,7 +321,9 @@ void OpenWeatherClient::connect ( const string &hostname, const unsigned short t
     throw std::runtime_error (std::string ("Connection to website failed (OpenSSL PRNG seeds issue)"));
   }
 
-  ssl_ctx = SSL_CTX_new (TLSv1_client_method ());
+//  ssl_ctx = SSL_CTX_new (TLSv1_client_method ());
+  ssl_ctx = SSL_CTX_new (SSLv23_client_method());
+  SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
 
   // Enable certificate validation
   //SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, NULL);
@@ -367,8 +425,12 @@ char *OpenWeatherClient::send_get_http_query ( const string &hostname, const str
   if ( param.length ())
     query += "?" + param;
 
-  query += " HTTP/1.1\r\nHost: " + hostname
+//  query += " HTTP/1.1\r\nHost: " + hostname
            + "\r\nConnection: keep-alive\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\nUser-Agent: libnavajo\r\nAccept-Encoding: gzip\r\nAccept-Language: fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4\r\n\r\n";
+
+   query += " HTTP/1.1\r\nHost: " + hostname
+           + "\r\nConnection: keep-alive\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\nUser-Agent: libnavajo\r\nAccept-Language: fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4\r\n\r\n";
+           
 
   return send_http_query (hostname, query);
 }
@@ -393,102 +455,183 @@ char *OpenWeatherClient::send_post_http_query ( const string &hostname, const st
 
 char *OpenWeatherClient::send_http_query ( const string &hostname, const string &query )
 {
-  char *res = NULL;
-  int len;
-  char tmpbuf[4096];
-  char *startBuf = NULL;
+    char *res = NULL;
+    size_t len;
+    char tmpbuf[4096];
+    char *startPayload = NULL;
 
-  if ( !connected )
-    try
-    {
-      connect (hostname, 443);
-    }
-    catch ( std::runtime_error &e )
-    {
-      throw std::runtime_error (string ("OpenWeatherClient::connect() failed :") + e.what ());
-      return NULL;
-    }
-
-  while ( BIO_write (sbio, query.c_str (), query.length ()) <= 0 )
-  {
-    if ( !BIO_should_retry (sbio))
-    {
-      throw std::runtime_error (std::string ("Connection to website failed (BIO_write)"));
-      return NULL;
-    }
-    // retry
-  }
-
-  BIO_flush (sbio);
-
-  bool header = true, protoOK = false, gzip = false;
-  int contentLength = 0, offset = 0;
-  int retCode = 0;
-
-  do
-  {
-    len = BIO_read (sbio, tmpbuf, sizeof tmpbuf);
-
-    if ( header && len < 20 )
-    {
-      throw std::runtime_error (std::string ("Connection to website failed (too short answer)"));
-      return NULL;
-    }
-
-
-    if ( header )
-    {
-      char *protostr = strcasestr (tmpbuf, "HTTP/1.");
-      if ( !protoOK && ( protostr == NULL ))
-      {
-        throw std::runtime_error (std::string ("Connection to website failed (Unknown protocol)"));
-        return NULL;
-      }
-      else
-      {
-        retCode = atoi (protostr + 9);
-        //printf("retCode=%d\n",retCode); fflush(NULL);
-        if ( retCode != 200 )
-        {
-          throw std::runtime_error (std::string ("Connection to website failed (retCode != 200)"));
-          return NULL;
+    if (!connected) {
+        try {
+            connect(hostname.c_str(), 443);  // Connect function to be implemented elsewhere
+        } catch (std::runtime_error &e) {
+            throw std::runtime_error(std::string("OpenWeatherClient::connect() failed: ") + e.what());
+            return NULL;
         }
-      }
-
-      char *lengthStr = strcasestr (tmpbuf, "Content-Length: ");
-      if ( lengthStr != NULL )
-      {
-        contentLength = atoi (lengthStr + 16);
-        res = ( char * ) malloc (( contentLength + 1 ) * sizeof (char));
-      }
-
-      if ( !gzip )
-        if ( strcasestr (tmpbuf, "Content-Encoding: gzip") != NULL )
-          gzip = true;
-
-      char *headerEnd = strstr (tmpbuf, "\r\n\r\n");
-      if ( headerEnd == NULL )
-        continue;
-      header = false;
-
-      startBuf = headerEnd + 4;
     }
-    else
-      startBuf = tmpbuf;
 
-    if ( len > startBuf - tmpbuf )
+
+    // Write the HTTP request
+    while (BIO_write(sbio, query.c_str(), query.length()) <= 0) 
     {
-      memcpy (res + offset, startBuf, len - ( startBuf - tmpbuf ));
-      offset += len;
+        if (!BIO_should_retry(sbio)) {
+            ERR_print_errors_fp(stderr);
+            throw std::runtime_error("Connection to website failed (BIO_write)");
+            return NULL;
+        }
     }
-  }
-  while ( offset < contentLength && ( len > 0 || ( len < 0 && BIO_should_retry (sbio))));
 
-  *( res + contentLength ) = '\0';
+    BIO_flush(sbio);
 
-  if ( len == 0 ) BIO_reset (sbio);
+    // Variables to manage response headers and body
+    bool header = true, protoOK = false, gzip = false;
+    size_t contentLength = 0, offset = 0;
+    int retCode = 0;
+    size_t bufferSize = 1280000;  // Initial buffer size if Content-Length is unknown
 
-  if ( gzip ) nvj_gunzip (( unsigned char ** ) &res, ( unsigned char * ) res, contentLength);
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(BIO_get_fd(sbio, NULL), &readfds);
+
+    do {
+    
+    struct timeval timeout;
+    timeout.tv_sec = 1;  // Temps d'attente de 1 seconde avant timeout
+    timeout.tv_usec = 0;
+
+    int ret = select(BIO_get_fd(sbio, NULL) + 1, &readfds, NULL, NULL, &timeout);
+    if (ret > 0) 
+    {
+      // La socket est prête à être lue
+      len = BIO_read(sbio, tmpbuf, sizeof(tmpbuf));
+    } 
+    else 
+      if (ret == 0) 
+      {
+        // Timeout, rien à lire
+        break;
+      } 
+      else 
+      {
+        // Une erreur est survenue avec select()
+        perror("select");
+        throw std::runtime_error("select() failed");
+      }
+    
+      /*
+      //DEBUG
+      printf("-------------------------------------\n");
+      printf("%.*s\n", sizeof(tmpbuf) - 1, tmpbuf );
+      printf("-------------------------------------\n\n");
+      */
+            
+        if (len < 0 && !BIO_should_retry(sbio)) {
+            ERR_print_errors_fp(stderr);
+            throw std::runtime_error("BIO_read failed");
+        }
+
+        // If headers are being read
+        if (header) {
+            if (len < 20) {
+                throw std::runtime_error("Connection to website failed (too short answer)");
+                return NULL;
+            }
+
+            char *protostr = strcasestr(tmpbuf, "HTTP/1.");
+            if (!protoOK && (protostr == NULL)) {
+                throw std::runtime_error("Connection to website failed (Unknown protocol)");
+                return NULL;
+            } else {
+                retCode = atoi(protostr + 9);
+                if (retCode != 200) {
+                    throw std::runtime_error("Connection to website failed (retCode != 200)");
+                    return NULL;
+                }
+            }
+
+            // Check for Content-Length
+            char *lengthStr = strcasestr(tmpbuf, "Content-Length: ");
+            if (lengthStr != NULL) {
+                contentLength = atoi(lengthStr + 16);
+                bufferSize = contentLength + 1;  // Adjust buffer size
+            }
+
+            // Check for Transfer-Encoding: chunked
+            bool isChunked = strcasestr(tmpbuf, "Transfer-Encoding: chunked") != NULL;
+
+            if (!gzip)
+                if (strcasestr(tmpbuf, "Content-Encoding: gzip") != NULL)
+                    gzip = true;
+
+            char *headerEnd = strstr(tmpbuf, "\r\n\r\n");
+            if (headerEnd == NULL)
+                continue;  // Wait for the rest of the header
+
+            // If Content-Length is unknown, allocate a larger buffer size
+            if (contentLength == 0) {
+                bufferSize = 1280000;  // Default size
+            }
+
+            // Allocate memory dynamically based on Content-Length or default size
+            res = (char *)malloc(bufferSize * sizeof(char));
+            if (res == NULL) {
+                throw std::runtime_error("Memory allocation failed");
+                return NULL;
+            }
+
+            header = false;
+            startPayload = headerEnd + 4;
+
+/*printf("header=%d len=%d startPayload-tmpbuf=%d\n",header,len,startPayload-tmpbuf);
+fflush(NULL);
+*headerEnd='\0';
+printf("HEADER: %s \n", tmpbuf);
+*/
+        } 
+        else 
+            startPayload = tmpbuf;
+
+
+        // Copy the content to the allocated buffer
+        if (len > startPayload - tmpbuf) 
+        {
+/*        printf("len > startPayload - tmpbuf : %d > %d - %d\n", len , startPayload , tmpbuf); 
+          printf("%.*s\n", len-1, startPayload);
+          fflush(NULL); */
+        
+        
+        
+            // Reallocate memory if buffer size is exceeded
+            if (offset + (len - (startPayload - tmpbuf)) >= bufferSize)
+            {
+            printf("REALLOC !!!\n"); fflush(NULL);
+                bufferSize *= 2;  // Double the buffer size
+                char *tmp = (char *)realloc(res, bufferSize);
+                if (!tmp) {
+                    free(res);
+                    throw std::runtime_error("Memory reallocation failed");
+                    return NULL;
+                }
+                res = tmp;
+            }
+            memcpy(res + offset, startPayload, len - (startPayload - tmpbuf));
+            offset += len - (startPayload - tmpbuf);
+        }
+        
+/*      printf("len=%d \nBIO_eof(sbio)=%d\n", len, BIO_eof(sbio) );
+        printf("BIO_ctrl_pending(sbio)=%d\n", BIO_ctrl_pending(sbio) );
+        printf("BIO_should_retry(sbio)=%d\n", BIO_should_retry(sbio) );
+        fflush(NULL);*/
+    } while ( len > 0 || BIO_should_retry(sbio));
+
+    // Null-terminate the result
+    //res[offset] = '\0';
+      
+  BIO_reset(sbio);
+
+//printf("strlen=%d   offset=%d\n",strlen(res), offset); fflush(NULL);
+
+
+  if ( gzip ) nvj_gunzip (( unsigned char ** ) &res, ( unsigned char * ) res, offset);
 
   return res;
 }

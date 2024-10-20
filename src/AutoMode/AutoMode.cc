@@ -35,11 +35,14 @@ using namespace rapidjson;
 
 #define OUTDOORTEMPCORR ( openWeatherClient->getTempForecast() - (double)(openWeatherClient->getHumiForecast())/75.0 )
 
-#define TEMP_CONSIGNE 18.5
+#define TEMP_CONSIGNE 19.0
 #define TEMP_VERYCOLD 15.0
 #define TEMP_CONSIGNE_ABSENCE  13.0
-#define DIFF_TEMP_STARTUP ((OUTDOORTEMPCORR<3.0)?1:.0  + (OUTDOORTEMPCORR<12.0)?1:.0)
-#define DIFF_TEMP_CLEARCAST 1.5
+
+// DIFF_TEMP_STARTUP: .5 si T entre 10 et 1°C, 1.5 si moins de 1°C
+#define DIFF_TEMP_STARTUP ((OUTDOORTEMPCORR<1.0)?1:.0  + (OUTDOORTEMPCORR<10.0)?.5:.0)
+
+#define DIFF_TEMP_CLEARCAST 1.0
 #define DIFF_TEMP_VERYCOLD 2.5
 
 
@@ -140,9 +143,8 @@ nbStrangeTemperature++;
     shutdownPeriod = ( tm_local->tm_hour >= 22 || tm_local->tm_hour < 5 ) // 22 to 6 hours : off dans tous les modes
                      || ( currentMode == Mode::normal
                           && tm_local->tm_hour >= 8 && tm_local->tm_hour < 17
-                          && tm_local->tm_wday != 0 && tm_local->tm_wday != 5
+                          && tm_local->tm_wday != 0 /*&& tm_local->tm_wday != 5*/
                           && tm_local->tm_wday != 6 )  // tm_wday (0 à 6) 0 dimanche - 6 samedi
-                     // add value 5: vendredi télétravail
                      || ( currentMode == Mode::absent && tm_local->tm_hour >= 8 ); // work only from 6 to 8
 
 
@@ -162,10 +164,12 @@ nbStrangeTemperature++;
       // if the temp/hygro has been reached
       if ((
               ( currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE )
-              || ( currentMode != Mode::absent && tempCorr > TEMP_CONSIGNE )
-              || ( tm_local->tm_hour >= ( 9 + ( tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1 ) ? 2 : 0 )
+
+	      // Si on est entre 9h (ou 11h) et 17h, qu'il fait beau et pas suffisamment froid. On arrête 
+	      || ( tm_local->tm_hour >= ( 9 + ( tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1 ) ? 2 : 0 )
                    && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast ()
                    && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_CLEARCAST )
+
               || ( shutdownPeriod && !veryColdCondition )
               || ( veryColdCondition && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_VERYCOLD ))
           && ( std::chrono::duration_cast<std::chrono::minutes> (std::chrono::system_clock::now () - startTime).count ()
@@ -206,13 +210,20 @@ nbStrangeTemperature++;
     // if the pellet is stopped: startCond ?
     if (( operatingMode == OperatingMode::off )
         && !( shutdownPeriod && !veryColdCondition )
+
         && ( tempCorr < TEMP_CONSIGNE - DIFF_TEMP_STARTUP )
+
+	// Si on est entre 9h (ou 11h) et 17h, qu'il fait beau et pas suffisamment froid. On ne démarre pas !
         && !( tm_local->tm_hour >= ( 9 + ( tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1 ) ? 2 : 0 )
               && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast ()
-              && tempCorr >= 18.0 - 1.0 )
+              && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_CLEARCAST - DIFF_TEMP_STARTUP ) 
+
+	// On ne démarre pas si on est à moins de 1h30 du précédent arrêt
         && ( std::chrono::duration_cast<std::chrono::minutes> (std::chrono::system_clock::now () - stopTime).count ()
              >= 90 )
-        && !( tm_local->tm_hour == 21 && tm_local->tm_min > 30 ))
+
+	// On démarre plus après 21h30.
+        && !( tm_local->tm_hour >= 21 && tm_local->tm_min >= 30 ))
     {
       NVJ_LOG->append (NVJ_INFO,
                        "Start Cond: tempCorr=" + to_string (tempCorr) + ", temp=" + to_string (temp) + ", humi="

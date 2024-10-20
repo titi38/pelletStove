@@ -44,6 +44,8 @@ using namespace std;
 #include <thread>
 #include <mutex>
 
+#include <time.h>
+
 #include "libnavajo/libnavajo.hh"
 
 
@@ -69,15 +71,17 @@ class OpenWeatherClient /**< LocalFlowEntry datatype definition */
     void free_ssl ();
     char *send_http_query ( const string &hostname, const string &query );
 
-    mutable mutex mutex_icon;
+    mutable mutex mutex_values;
     thread *thread_loop = nullptr;
     volatile bool exiting = false;
     void loop ();
 
     int nextDataAvailable = 0;
 
+    volatile bool clearForcast = true;
     volatile double temp = 0, wind_speed = 0, wind_dir = 0;
     volatile int humi = 0;
+    tm sunset, sunrise;
     string icon;
 
 
@@ -85,15 +89,28 @@ class OpenWeatherClient /**< LocalFlowEntry datatype definition */
     OpenWeatherClient ();
     ~OpenWeatherClient ();
     string getInfoJson () const;
+
     bool isClearForcast () const
-    { return icon == "01d" || icon == "02d"; };
+    { return clearForcast; };
     double getTempForecast() const
     { return temp; };
     int getHumiForecast() const
     { return humi; };
+    const tm getSunset()
+    { 
+	std::lock_guard<std::mutex> guard(mutex_values); 
+	tm copyOfTm = sunset; 
+	return copyOfTm; 
+    };
+    const tm getSunrise() const
+    { 
+	std::lock_guard<std::mutex> guard(mutex_values); 
+	tm copyOfTm = sunrise; 
+	return copyOfTm; 
+    };
 
 
-    char *send_get_http_query ( const string &hostname, const string &url, const string &param = NULL );
+    char *send_get_http_query ( const string &hostname, const string &url, const string &param );
     char *send_post_http_query ( const string &hostname, const string &url, const string &param );
     void connect ( const string &hostname, const unsigned short port );
     void disconnect ();
