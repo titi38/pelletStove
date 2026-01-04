@@ -321,6 +321,8 @@ PelletService::PelletService ()
 
   delay (5000);
 
+//buttonControl->resetError();
+
   if ( lcdReader->getCurrentOperatingMode () == OperatingMode::unknown )
     buttonControl->goToMainMenu ();
 

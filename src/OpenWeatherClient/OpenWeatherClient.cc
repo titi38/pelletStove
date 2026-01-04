@@ -133,7 +133,7 @@ if (found) *found='\0';
 	  if (condition_value.HasMember("icon") && condition_value["icon"].IsString())
             icon = condition_value[ "icon" ].GetString(); 
 	  if (condition_value.HasMember("code") && condition_value["code"].IsNumber())
-	    clearForcast =  current_value[ "humidity" ].GetInt () <= 1006 ;
+	    clearForcast =  condition_value[ "code" ].GetInt () <= 1006 ;
         }
 
         if (current_value.HasMember("wind_kph") && current_value["wind_kph"].IsNumber()) 

@@ -35,12 +35,13 @@ using namespace rapidjson;
 
 #define OUTDOORTEMPCORR ( openWeatherClient->getTempForecast() - (double)(openWeatherClient->getHumiForecast())/75.0 )
 
-#define TEMP_CONSIGNE 19.0
+#define TEMP_CONSIGNE 20
 #define TEMP_VERYCOLD 15.0
 #define TEMP_CONSIGNE_ABSENCE  13.0
 
 // DIFF_TEMP_STARTUP: .5 si T entre 10 et 1°C, 1.5 si moins de 1°C
-#define DIFF_TEMP_STARTUP ((OUTDOORTEMPCORR<1.0)?1:.0  + (OUTDOORTEMPCORR<10.0)?.5:.0)
+#define DIFF_TEMP_STARTUP ((OUTDOORTEMPCORR < 1.0) ? 1.0 : 0.5) + ((OUTDOORTEMPCORR < 10.0) ? 0.5 : 0.0)
+#define DIFF_TEMP_SHUTDOWN ((OUTDOORTEMPCORR < 1.0) ? 1.0 : 0.5)
 
 #define DIFF_TEMP_CLEARCAST 1.0
 #define DIFF_TEMP_VERYCOLD 2.5
@@ -145,18 +146,20 @@ nbStrangeTemperature++;
                           && tm_local->tm_hour >= 8 && tm_local->tm_hour < 17
                           && tm_local->tm_wday != 0 /*&& tm_local->tm_wday != 5*/
                           && tm_local->tm_wday != 6 )  // tm_wday (0 à 6) 0 dimanche - 6 samedi
-                     || ( currentMode == Mode::absent && tm_local->tm_hour >= 8 ); // work only from 6 to 8
+                     || ( currentMode == Mode::absent && tm_local->tm_hour >= 6 && tm_local->tm_hour < 8 ); // work only from 6 to 8
 
 
     // shutdownPeriod... but it's cold !!!
-    if ( !veryColdCondition && shutdownPeriod && operatingMode == OperatingMode::off
-         && currentMode != Mode::absent && ( tempCorr < TEMP_VERYCOLD )) // 3°C de moins : rallumage anticipé
+    /*if (!veryColdCondition && shutdownPeriod && operatingMode == OperatingMode::off
+         && currentMode != Mode::absent && ( tempCorr < TEMP_VERYCOLD ) ) // 3°C de moins : rallumage anticipé
     {
       veryColdCondition = true;
     }
 
     if ( !shutdownPeriod ) // only in shutdownPeriod
-      veryColdCondition = false;
+      veryColdCondition = false;*/
+
+    veryColdCondition = tempCorr < TEMP_VERYCOLD;
 
     // if the pellet is running...
     if ( operatingMode == OperatingMode::on )
@@ -165,25 +168,50 @@ nbStrangeTemperature++;
       if ((
               ( currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE )
 
+	      || ( tempCorr >= TEMP_CONSIGNE + DIFF_TEMP_SHUTDOWN)
+
 	      // Si on est entre 9h (ou 11h) et 17h, qu'il fait beau et pas suffisamment froid. On arrête 
 	      || ( tm_local->tm_hour >= ( 9 + ( tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1 ) ? 2 : 0 )
                    && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast ()
-                   && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_CLEARCAST )
+                   && tempCorr >= TEMP_CONSIGNE + DIFF_TEMP_SHUTDOWN - DIFF_TEMP_CLEARCAST )
 
-              || ( shutdownPeriod && !veryColdCondition )
-              || ( veryColdCondition && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_VERYCOLD ))
+              || ( shutdownPeriod && !veryColdCondition ))
+             // || ( veryColdCondition && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_VERYCOLD ))
           && ( std::chrono::duration_cast<std::chrono::minutes> (std::chrono::system_clock::now () - startTime).count ()
                >= 90 ))
       {
+
+	bool expr1 = (currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE);
+	bool expr2 = (tempCorr >= TEMP_CONSIGNE + DIFF_TEMP_SHUTDOWN);
+	bool expr3 = (tm_local->tm_hour >= (9 + ((tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1) ? 2 : 0)) &&
+		                  tm_local->tm_hour < 17 && openWeatherClient->isClearForcast() &&
+	                    tempCorr >= TEMP_CONSIGNE + DIFF_TEMP_SHUTDOWN - DIFF_TEMP_CLEARCAST);
+	bool expr4 = (shutdownPeriod && !veryColdCondition);
+	bool expr5 = (veryColdCondition && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_VERYCOLD);
+
+      	std::ostringstream debugOutput;
+	debugOutput << std::boolalpha; // Afficher les booléens comme "true" ou "false"
+
+	// Ajouter les valeurs des expressions
+	debugOutput << "(currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE): " << expr1 << "\n";
+	debugOutput << "(tempCorr >= TEMP_CONSIGNE + DIFF_TEMP_SHUTDOWN): " << expr2 << "\n";
+	debugOutput << "(tm_local->tm_hour >= (9 + (tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1) ? 2 : 0) "
+	       << "&& tm_local->tm_hour < 17 && openWeatherClient->isClearForcast() "
+	       << "&& tempCorr >= TEMP_CONSIGNE + DIFF_TEMP_SHUTDOWN - DIFF_TEMP_CLEARCAST): " << expr3 << "\n";
+	debugOutput << "(shutdownPeriod && !veryColdCondition): " << expr4 << "\n";
+	debugOutput << "(veryColdCondition && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_VERYCOLD): " << expr5 << "\n";
+	// Ajouter la date et l'heure
+	debugOutput << "Date: " << std::put_time(tm_local, "%Y-%m-%d %H:%M:%S") << "\n";
+	
         NVJ_LOG->append (NVJ_INFO,
-                         "Stop Cond: shutdownPeriod=" + to_string (shutdownPeriod) + ", temp=" + to_string (temp)
+                         "Stop Cond: shutdownPeriod=" + to_string (shutdownPeriod) + ", tempCorr=" + to_string (tempCorr) + ", temp=" + to_string (temp)
                          + ", humi=" + to_string (humi) + ", forecast="
                          + to_string (openWeatherClient->isClearForcast ()) + ", currentMode="
                          + to_string (static_cast<int>(currentMode)) + ", veryColdCondition="
-                         + to_string (veryColdCondition));
+                         + to_string (veryColdCondition) + "DEBUG: " + debugOutput.str());
         buttonControl->stop ();
         stopTime = std::chrono::system_clock::now ();
-        veryColdCondition = false;
+//        veryColdCondition = false;
         needCleaning = true;
         sleep (60 * 60); // 1h
         continue;
@@ -191,8 +219,9 @@ nbStrangeTemperature++;
       // else
       short deltaPower = 0;
 
-      if ( currentMode == Mode::absent || ( veryColdCondition && !shutdownPeriod ))
-        deltaPower = 1 - lcdReader->getPower ();
+      //if ( currentMode == Mode::absent || ( veryColdCondition && !shutdownPeriod ))
+      if ( currentMode == Mode::absent )
+        deltaPower = (veryColdCondition ? 2:1) - lcdReader->getPower ();
       else
         deltaPower = std::min (6, ( short ) ( TEMP_CONSIGNE - tempCorr ) + 1) - lcdReader->getPower ();
 
@@ -209,21 +238,26 @@ nbStrangeTemperature++;
 
     // if the pellet is stopped: startCond ?
     if (( operatingMode == OperatingMode::off )
-        && !( shutdownPeriod && !veryColdCondition )
 
-        && ( tempCorr < TEMP_CONSIGNE - DIFF_TEMP_STARTUP )
+	&& 
+	(( !shutdownPeriod
 
-	// Si on est entre 9h (ou 11h) et 17h, qu'il fait beau et pas suffisamment froid. On ne démarre pas !
-        && !( tm_local->tm_hour >= ( 9 + ( tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1 ) ? 2 : 0 )
+          && (   ( currentMode == Mode::absent && tempCorr < TEMP_CONSIGNE_ABSENCE - DIFF_TEMP_STARTUP )
+  	    || ( currentMode != Mode::absent && tempCorr < TEMP_CONSIGNE - DIFF_TEMP_STARTUP ) )
+
+	  // Si on est entre 9h (ou 11h) et 17h, qu'il fait beau et pas suffisamment froid. On ne démarre pas !
+          && !( tm_local->tm_hour >= ( 9 + ( tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1 ) ? 2 : 0 )
               && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast ()
               && tempCorr >= TEMP_CONSIGNE - DIFF_TEMP_CLEARCAST - DIFF_TEMP_STARTUP ) 
 
-	// On ne démarre pas si on est à moins de 1h30 du précédent arrêt
-        && ( std::chrono::duration_cast<std::chrono::minutes> (std::chrono::system_clock::now () - stopTime).count ()
+	  // On ne démarre pas si on est à moins de 1h30 du précédent arrêt
+          && ( std::chrono::duration_cast<std::chrono::minutes> (std::chrono::system_clock::now () - stopTime).count ()
              >= 90 )
 
-	// On démarre plus après 21h30.
-        && !( tm_local->tm_hour >= 21 && tm_local->tm_min >= 30 ))
+	  // On démarre plus après 21h30.
+          && !( tm_local->tm_hour >= 21 && tm_local->tm_min >= 30 ))
+		
+	||  veryColdCondition ))
     {
       NVJ_LOG->append (NVJ_INFO,
                        "Start Cond: tempCorr=" + to_string (tempCorr) + ", temp=" + to_string (temp) + ", humi="

@@ -129,8 +129,11 @@ void LcdReader::setLcdMessage ( const char *msg )
               if ( lcdMessage.find("TERM-DEPR") != std::string::npos )
                 currentOperatingMode = OperatingMode::alertTermDepr;
               else
-                if ( lcdMessage.find("ATTENTE") != std::string::npos )
-                  currentOperatingMode = OperatingMode::stopping;
+		if ( lcdMessage.find("VENT") != std::string::npos ) // "ALARME VENT.FUMEES"
+                  currentOperatingMode = OperatingMode::alertVentFume;
+                else
+                  if ( lcdMessage.find("ATTENTE") != std::string::npos )
+                    currentOperatingMode = OperatingMode::stopping;
                 
 		//	delayedStart;
 
@@ -207,6 +210,9 @@ string LcdReader::getInfoJson () const
       break;
     case OperatingMode::alertTermDepr:
       writer.String ("alertTermDepr");
+      break;
+    case OperatingMode::alertVentFume:
+      writer.String ("alertVentFumees");
       break;
     case OperatingMode::delayedStart:
       writer.String ("delayedStart");
