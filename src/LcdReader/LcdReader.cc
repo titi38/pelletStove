@@ -45,26 +45,21 @@ LcdReader::LcdReader ()
 {
   exiting = false;
 
-  thread_loop = new thread (&LcdReader::loop, this);
+  thread_loop = std::thread (&LcdReader::loop, this);
   NVJ_LOG->append (NVJ_INFO, "LcdReader is starting");
 }
 
 LcdReader::~LcdReader ()
 {
   exiting = true;
-  thread_loop->join ();
+  if (thread_loop.joinable()) thread_loop.join();
 }
 
 void LcdReader::setStopping ()
 {
-  new thread (&LcdReader::stoppingDelay, this);
-}
-
-void LcdReader::stoppingDelay ()
-{
+  std::lock_guard<std::mutex> lock(mutex_lcdMessage);
+  stoppingUntil = std::chrono::steady_clock::now() + std::chrono::minutes(35);
   stopping = true;
-  sleep (35 * 60); // 35mn
-  stopping = false;
 }
 
 /***********************************************************************/
@@ -148,9 +143,9 @@ void LcdReader::setLcdMessage ( const char *msg )
       std::size_t found = lcdMessage.find ("P=");
       if ( found != std::string::npos )
       {
+        // `power` est le niveau mémorisé pour le prochain démarrage.
+        // Ne pas le remettre à zéro lors de l'arrêt.
         power = stoi (lcdMessage.substr (found + 2, 1));
-        if ( currentOperatingMode == OperatingMode::on )
-          Stats::getInstance ()->updateRunStats (power);
       }
 
       found = lcdMessage.find ("T=");
@@ -160,6 +155,13 @@ void LcdReader::setLcdMessage ( const char *msg )
         tempWaterConsigne = stoi (lcdMessage.substr (found + 5, 2).c_str ());
       }
     }
+
+    // La puissance des statistiques est effective, pas la consigne mémorisée.
+    // Mise à jour également quand le LCD ne contient pas P= (ETEINT, ATTENTE...).
+    if ( currentOperatingMode == OperatingMode::on )
+      Stats::getInstance ()->updateRunStats (power);
+    else if ( currentOperatingMode != OperatingMode::unknown )
+      Stats::getInstance ()->updateRunStats (0);
   }
   catch ( ... )
   {
@@ -189,7 +191,7 @@ string LcdReader::getInfoJson () const
   writer.Int (getTempWaterConsigne ());
   writer.String ("operatingMode");
 
-  switch ( currentOperatingMode )
+  switch ( currentOperatingMode.load() )
   {
     case OperatingMode::unknown:
       writer.String ("unknown");

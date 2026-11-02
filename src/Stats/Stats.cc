@@ -1,146 +1,137 @@
-//------------------------------------------------------------------------------
-//
-// Stats.cc : Collect Statistics
-//
-//------------------------------------------------------------------------------
-//
-// AUTHOR      : T.DESCOMBES (thierry.descombes@gmail.com)
-// PROJECT     : pelletStove
-//
-//------------------------------------------------------------------------------
-//           Versions and Editions  historic
-//------------------------------------------------------------------------------
-// Ver      | Ed  |   date   | resp.       | comment
-//----------+-----+----------+-------------+------------------------------------
-// 1        | 1   | 01/10/21 | T.DESCOMBES | source creation
-//----------+-----+----------+-------------+------------------------------------
-//
-//           Detailed modification operations on this source
-//------------------------------------------------------------------------------
-//  Date  :                            Author :
-//  REL   :
-//  Description :
-//
-//------------------------------------------------------------------------------
-
-#include "rapidjson/document.h"      // rapidjson's DOM-style API
-#include "rapidjson/prettywriter.h"    // for stringify JSON
-
 #include "Stats.hh"
-#include <ctime>
+#include "rapidjson/prettywriter.h"
 #include <chrono>
+#include <algorithm>
+#include <cmath>
 
 using namespace rapidjson;
 
-Stats *Stats::theStats = nullptr;
+Stats* Stats::theStats = nullptr;
 
-/***********************************************************************/
-
-Stats::Stats ()
+Stats* Stats::getInstance()
 {
-  nbStats = 0;
-  idxStats = 0;
-  sumTemp = 0;
-  sumHumi = 0;
-  nbHTVal = 0;
-  sumRun = 0;
-  nbRunVal = 0;
+    // Construct on first use, thread-safe since C++11. Lifetime is process-wide.
+    static Stats instance;
+    return &instance;
 }
 
-/***********************************************************************/
-
-Stats::~Stats ()
+void Stats::freeInstance()
 {
+    // Compatibility method. Singleton is process-owned and must not be deleted
+    // while DHT/LCD/HTTP worker threads are running.
 }
 
-/***********************************************************************/
-
-void Stats::updateIfEndQuarter ()
+std::time_t Stats::quarterStart(std::time_t now)
 {
-  std::time_t tt = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now ());
-  std::tm *tm = std::localtime (&tt);
-
-  if (( currentTimeStat != tm->tm_min / 15 ) && (currentTimeStat != FIRST_TIMESTAT ) ) // update prev Quarter
-  {
-    dailyStats[ idxStats ][ 0 ] = (nbHTVal>0) ? sumTemp / nbHTVal : 0;
-    dailyStats[ idxStats ][ 1 ] = (nbHTVal>0) ? sumHumi / nbHTVal : 0;
-    dailyStats[ idxStats ][ 2 ] = (nbRunVal>0) ? sumRun / nbRunVal : 0;
-
-    sumTemp = 0;
-    sumHumi = 0;
-    nbHTVal = 0;
-
-    sumRun = 0;
-    nbRunVal = 0;
-
-    idxStats = ( idxStats + 1 ) % ( 24 * 4 ); // point to the next stat quarter
-    if ( nbStats < 24 * 4 )
-      nbStats++;
-
-    currentTimeStat = tm->tm_min / 15;
-  }
-
-  if ( (currentTimeStat == FIRST_TIMESTAT ) )
-    currentTimeStat = tm->tm_min / 15;
- 
+    // A 15-minute interval is always 900 seconds (including DST transitions).
+    return now - ((now % 900 + 900) % 900);
 }
 
-/***********************************************************************/
-
-void Stats::updateHTStats ( double temp, double humi )
+void Stats::closeQuarterLocked()
 {
-  updateIfEndQuarter ();
-
-  sumTemp += temp ;
-  sumHumi += humi ;
-  nbHTVal++;
+    dailyStats_[nextSlot_][0] = countHT_ ? sumsTemp_ / countHT_ : 0;
+    dailyStats_[nextSlot_][1] = countHT_ ? sumsHumi_ / countHT_ : 0;
+    // If power was not yet observed, return zero; otherwise average over
+    // observed seconds, not LCD message counts.
+    dailyStats_[nextSlot_][2] = powerSeconds_ > 0 ? powerIntegral_ / powerSeconds_ : 0;
+    nextSlot_ = (nextSlot_ + 1) % kSlots;
+    countSlots_ = (countSlots_ < kSlots ? countSlots_ + 1 : kSlots);
+    sumsTemp_ = sumsHumi_ = 0;
+    countHT_ = 0;
+    powerIntegral_ = powerSeconds_ = 0;
 }
 
-/***********************************************************************/
-
-void Stats::updateRunStats ( unsigned char runMode )
+void Stats::accountPowerLocked(std::time_t until)
 {
-  updateIfEndQuarter ();
-
-  sumRun += runMode;
-  nbRunVal++;
+    if (!hasPower_ || until <= lastPowerTime_) return;
+    // The known power remains in effect until the next LCD update.
+    double seconds = static_cast<double>(until - lastPowerTime_);
+    powerIntegral_ += seconds * currentPower_;
+    powerSeconds_ += seconds;
+    lastPowerTime_ = until;
 }
 
-
-/***********************************************************************/
-
-string Stats::getStatsJson () const
+void Stats::advanceLocked(std::time_t now)
 {
-  std::time_t tt = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now ());
-  std::tm *tm = std::localtime (&tt);
-
-  string resultat = "";
-  GenericStringBuffer <UTF8<>> buffer;
-  Writer <GenericStringBuffer<UTF8<> >> writer (buffer);
-  writer.SetMaxDecimalPlaces(2);
-  writer.StartObject ();
-
-  writer.String ("hour");
-  writer.Int (tm->tm_hour);
-  writer.String ("quarter");
-  writer.Int (currentTimeStat);
-
-  writer.String ("stats");
-  writer.StartArray ();
-  if ( nbStats )
-  {
-    for ( int idx = ( idxStats - nbStats ) % ( 24 * 4 ); idx != idxStats; idx++ )
-    {
-      writer.StartArray ();
-      writer.Double (dailyStats[ idx ][ 0 ]); // Temp
-      writer.Double (dailyStats[ idx ][ 1 ]); // Humidity
-      writer.Double (dailyStats[ idx ][ 2 ]); // Run
-      writer.EndArray ();
+    if (!quarterStart_) {
+        quarterStart_ = quarterStart(now);
+        if (hasPower_) lastPowerTime_ = now;
+        return;
     }
-  }
-  writer.EndArray ();
-  writer.EndObject ();
-  resultat = buffer.GetString ();
-  buffer.Clear ();
-  return resultat;
+    if (now < quarterStart_) { // clock corrected backwards
+        quarterStart_ = quarterStart(now);
+        sumsTemp_ = sumsHumi_ = powerIntegral_ = powerSeconds_ = 0;
+        countHT_ = 0;
+        lastPowerTime_ = now;
+        return;
+    }
+    // Avoid 1,000s of iterations after long downtime / clock jumps.
+    if (now - quarterStart_ > kSlots * 900) {
+        quarterStart_ = quarterStart(now);
+        countSlots_ = nextSlot_ = 0;
+        sumsTemp_ = sumsHumi_ = powerIntegral_ = powerSeconds_ = 0;
+        countHT_ = 0;
+        lastPowerTime_ = now;
+        return;
+    }
+    while (now >= quarterStart_ + 900) {
+        accountPowerLocked(quarterStart_ + 900);
+        closeQuarterLocked();
+        quarterStart_ += 900;
+    }
+    accountPowerLocked(now);
+}
+
+void Stats::updateIfEndQuarter()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    advanceLocked(std::time(nullptr));
+}
+
+void Stats::updateHTStats(double temp, double humi)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    advanceLocked(std::time(nullptr));
+    if (!std::isfinite(temp) || !std::isfinite(humi)) return;
+    sumsTemp_ += temp;
+    sumsHumi_ += humi;
+    ++countHT_;
+}
+
+void Stats::updateRunStats(unsigned char power)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto now = std::time(nullptr);
+    advanceLocked(now); // account previous power through current time
+    currentPower_ = std::min(static_cast<int>(power), 6);
+    hasPower_ = true;
+    lastPowerTime_ = now;
+}
+
+std::string Stats::getStatsJson() const
+{
+    // This method advances the quarter even if no sensors have reported lately.
+    auto* self = const_cast<Stats*>(this);
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto now = std::time(nullptr);
+    self->advanceLocked(now);
+    std::tm tm{};
+    localtime_r(&now, &tm);
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    writer.SetMaxDecimalPlaces(2);
+    writer.StartObject();
+    writer.Key("hour"); writer.Int(tm.tm_hour);
+    writer.Key("quarter"); writer.Int(tm.tm_min / 15);
+    writer.Key("stats"); writer.StartArray();
+    for (int n = 0; n < countSlots_; ++n) {
+        const int idx = (nextSlot_ + kSlots - countSlots_ + n) % kSlots;
+        writer.StartArray();
+        for (int j = 0; j < 3; ++j) writer.Double(dailyStats_[idx][j]);
+        writer.EndArray();
+    }
+    writer.EndArray();
+    writer.EndObject();
+    return buffer.GetString();
 }

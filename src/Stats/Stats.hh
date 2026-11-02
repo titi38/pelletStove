@@ -27,6 +27,8 @@
 #define STATS_HH_
 
 #include <string>
+#include <mutex>
+#include <ctime>
 #include "libnavajo/libnavajo.hh"
 
 #define FIRST_TIMESTAT 255
@@ -39,44 +41,34 @@ using namespace std;
 */
 class Stats
 {
-    volatile double sumTemp = 0, sumHumi = 0, sumRun = 0;
-    volatile int nbHTVal = 0, nbRunVal = 0;
-    volatile int nbStats = 0, idxStats = 0;
-    volatile double dailyStats[24*4][3]; // 24hours x 4 quartersOfHour x 3 values(temp/hum/run)
-    volatile unsigned char currentTimeStat = FIRST_TIMESTAT;
-
     static Stats *theStats;
+    static constexpr int kSlots = 96;
+    mutable std::mutex mutex_;
+    double sumsTemp_ = 0, sumsHumi_ = 0;
+    int countHT_ = 0;
+    double powerIntegral_ = 0; // power * seconds in current quarter
+    double powerSeconds_ = 0;
+    int currentPower_ = 0;
+    bool hasPower_ = false;
+    std::time_t lastPowerTime_ = 0;
+    std::time_t quarterStart_ = 0;
+    double dailyStats_[kSlots][3] = {};
+    int nextSlot_ = 0, countSlots_ = 0;
 
-  protected:
-    Stats ();
-    virtual ~Stats ();
+    static std::time_t quarterStart(std::time_t now);
+    void advanceLocked(std::time_t now);
+    void accountPowerLocked(std::time_t until);
+    void closeQuarterLocked();
 
   public:
-    /**
-     * getInstance is part of the GeoIpListRecorder Singleton implementation
-     * @return the uniq instance of GeoIpListRecorder
-     */
-    inline static Stats* getInstance()
-    {
-      if (theStats == NULL)
-        theStats = new Stats;
-
-      return theStats;
-    };
-
-    inline static void freeInstance()
-    {
-      if (theStats != nullptr)
-        delete theStats;
-    };
-
+    Stats() = default;
+    ~Stats() = default;
+    static Stats* getInstance();
+    static void freeInstance(); // Do not call while worker threads are active.
     void updateIfEndQuarter();
-    void updateHTStats (double temp, double humi);
-    void updateRunStats ( unsigned char runMode);
-
-    string getStatsJson () const;
-
+    void updateHTStats(double temp, double humi);
+    void updateRunStats(unsigned char power);
+    std::string getStatsJson() const;
 };
-
 
 #endif

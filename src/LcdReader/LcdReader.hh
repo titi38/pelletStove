@@ -32,6 +32,8 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <atomic>
+#include <chrono>
 
 using namespace std;
 
@@ -59,15 +61,15 @@ using namespace std;
     void loop();
     void setLcdMessage(const char* msg);
 
-    thread *thread_loop=nullptr;
-    volatile bool exiting = false;
+    std::thread thread_loop;
+    std::atomic<bool> exiting{false};
     mutable mutex mutex_lcdMessage;
 
-    volatile int power=0, tempWater=0, tempWaterConsigne=0;
-    volatile OperatingMode currentOperatingMode = OperatingMode::unknown;
+    std::atomic<int> power{0}, tempWater{0}, tempWaterConsigne{0};
+    std::atomic<OperatingMode> currentOperatingMode{OperatingMode::unknown};
 
-    volatile bool stopping = false;
-    void stoppingDelay();
+    std::atomic<bool> stopping{false};
+    std::chrono::steady_clock::time_point stoppingUntil{};
 
     public:
       LcdReader();
