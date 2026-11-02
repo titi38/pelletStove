@@ -1,0 +1,30 @@
+[32m[2023-11-05 18:21:00] >  OpenWeatherClient is starting
+[0m[32m[2023-11-05 18:21:00] >  LcdReader is starting
+[0m[32m[2023-11-05 18:21:00] >  DhtReader is starting
+[0m[32m[2023-11-05 18:21:00] >  Gauge is starting
+[0m[32m[2023-11-05 18:21:05] >  AutoMode is starting
+[0m[32m[2023-11-05 18:21:05] >  WebServer: Service is starting !
+[0m[32m[2023-11-05 18:21:31] >  Start Cond: tempCorr=15.690667, temp=16.600000, humi=68.200000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-11-05 18:21:31] >  ButtonControl::start()
+[0m[31m[2023-11-05 18:41:09] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:41:26] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:41:42] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[32m[2023-11-05 18:41:45] >  ButtonControl::incPower(2)
+[0m[32m[2023-11-05 18:41:55] >  incPower(2), tempCorr=15.792000, temp=16.700000, humi=68.100000
+[0m[31m[2023-11-05 18:41:58] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:42:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:42:31] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:42:47] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:43:03] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:43:19] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:43:36] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:43:52] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:44:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:44:36] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:49:56] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 18:55:45] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 19:06:09] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 19:11:51] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-05 19:22:16] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[32m[2023-11-05 19:25:04] >  WebServer: Service is stopping !
+[0m

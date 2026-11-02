@@ -1,0 +1,331 @@
+[32m[2023-09-22 19:09:33] >  OpenWeatherClient is starting
+[0m[32m[2023-09-22 19:09:34] >  LcdReader is starting
+[0m[32m[2023-09-22 19:09:34] >  DhtReader is starting
+[0m[32m[2023-09-22 19:09:34] >  Gauge is starting
+[0m[32m[2023-09-22 19:09:39] >  AutoMode is starting
+[0m[32m[2023-09-22 19:09:39] >  WebServer: Service is starting !
+[0m[31m[2023-09-23 09:17:50] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 10:56:30] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 10:56:49] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 10:57:05] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 10:57:22] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 10:57:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 10:58:06] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:08:47] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:14:27] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:19:58] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:20:28] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:20:58] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:21:28] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:21:58] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:22:28] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:22:58] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:23:28] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:23:58] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:24:28] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:24:58] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:30:15] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:30:31] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:30:47] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:31:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:31:20] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:31:36] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:31:52] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:32:09] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:32:25] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:32:41] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:32:57] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:33:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:33:30] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:33:46] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:34:02] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:34:19] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:34:35] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:34:57] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:40:26] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:40:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:46:11] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:46:27] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:46:43] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:47:00] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:47:16] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:47:32] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:47:48] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:48:05] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:48:21] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:48:37] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:48:53] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:49:10] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:49:26] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:49:42] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:49:58] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:50:15] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:50:31] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:50:47] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:51:03] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:51:19] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:51:36] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:51:52] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:52:08] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:52:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:52:41] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:52:57] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:53:13] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:53:29] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:53:46] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:54:02] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:54:18] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:54:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:54:51] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:55:07] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:55:23] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:55:39] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:55:56] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 11:56:23] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 12:02:06] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-28 14:57:47] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-29 19:49:02] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-30 01:25:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-09-30 10:56:56] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-03 09:48:16] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-13 15:32:05] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[32m[2023-10-15 22:32:48] >  Gauge: TIMEOUT ! nbLow=50002, nbHigh=0
+[0m[31m[2023-10-16 21:04:26] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-17 23:03:02] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-20 19:18:26] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-21 16:35:08] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-22 00:04:22] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[32m[2023-10-26 18:52:33] >  Start Cond: tempCorr=16.948000, temp=17.900000, humi=71.400000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-26 18:52:33] >  ButtonControl::start()
+[0m[32m[2023-10-26 18:53:30] >  ButtonControl::resetError()
+[0m[32m[2023-10-26 18:54:42] >  ButtonControl::start()
+[0m[32m[2023-10-26 18:55:08] >  ButtonControl::resetError()
+[0m[32m[2023-10-26 18:55:35] >  ButtonControl::stop()
+[0m[32m[2023-10-26 18:59:40] >  ButtonControl::resetError()
+[0m[32m[2023-10-26 19:00:03] >  ButtonControl::stop()
+[0m[32m[2023-10-26 19:09:52] >  ButtonControl::start()
+[0m[32m[2023-10-27 16:48:23] >  ButtonControl::resetError()
+[0m[32m[2023-10-27 16:48:44] >  ButtonControl::start()
+[0m[32m[2023-10-27 16:50:11] >  ButtonControl::resetError()
+[0m[32m[2023-10-27 16:50:30] >  ButtonControl::start()
+[0m[32m[2023-10-27 16:51:05] >  ButtonControl::resetError()
+[0m[32m[2023-10-27 16:58:54] >  ButtonControl::resetError()
+[0m[32m[2023-10-27 16:59:16] >  ButtonControl::start()
+[0m[32m[2023-10-27 17:02:44] >  ButtonControl::resetError()
+[0m[32m[2023-10-27 17:06:45] >  ButtonControl::start()
+[0m[32m[2023-10-27 17:13:29] >  ButtonControl::resetError()
+[0m[32m[2023-10-27 17:19:58] >  ButtonControl::start()
+[0m[32m[2023-10-27 17:54:15] >  ButtonControl::resetError()
+[0m[32m[2023-10-27 17:54:29] >  Start Cond: tempCorr=17.456000, temp=18.400000, humi=70.800000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-27 17:54:29] >  ButtonControl::start()
+[0m[32m[2023-10-27 18:25:17] >  ButtonControl::resetError()
+[0m[32m[2023-10-27 18:52:21] >  ButtonControl::start()
+[0m[32m[2023-10-27 21:13:43] >  Big difference in temperature/hygro:  temp=20.200000, humi=70.100000, tempCorrOld=17.666667, tempCorr=19.265333, re-read
+[0m[32m[2023-10-27 21:13:53] >  Big difference in temperature/hygro:  temp=20.200000, humi=70.000000, tempCorrOld=17.666667, tempCorr=19.266667, re-read
+[0m[32m[2023-10-27 21:14:03] >  Stop Cond: shutdownPeriod=1, temp=20.200000, humi=70.000000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-27 21:14:03] >  ButtonControl::stop()
+[0m[31m[2023-10-27 22:11:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:11:31] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:11:49] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:12:07] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:12:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:12:42] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:12:59] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:13:23] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[32m[2023-10-27 22:14:07] >  ButtonControl::stop()
+[0m[31m[2023-10-27 22:18:57] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:29:35] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:29:59] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:35:27] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-27 22:46:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[32m[2023-10-28 03:00:00] >  Start Cond: tempCorr=17.453333, temp=18.400000, humi=71.000000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-28 03:00:00] >  ButtonControl::start()
+[0m[32m[2023-10-28 03:36:14] >  ButtonControl::incPower(-1)
+[0m[32m[2023-10-28 03:36:23] >  incPower(-1), tempCorr=17.556000, temp=18.500000, humi=70.800000
+[0m[32m[2023-10-28 03:37:23] >  ButtonControl::incPower(1)
+[0m[32m[2023-10-28 03:37:33] >  incPower(1), tempCorr=17.457333, temp=18.400000, humi=70.700000
+[0m[32m[2023-10-28 03:54:33] >  ButtonControl::incPower(-1)
+[0m[32m[2023-10-28 03:54:42] >  incPower(-1), tempCorr=17.560000, temp=18.500000, humi=70.500000
+[0m[32m[2023-10-28 03:55:42] >  ButtonControl::incPower(1)
+[0m[32m[2023-10-28 03:55:52] >  incPower(1), tempCorr=17.461333, temp=18.400000, humi=70.400000
+[0m[32m[2023-10-28 03:57:52] >  ButtonControl::incPower(-1)
+[0m[32m[2023-10-28 03:58:01] >  incPower(-1), tempCorr=17.560000, temp=18.500000, humi=70.500000
+[0m[32m[2023-10-28 06:31:01] >  Stop Cond: shutdownPeriod=0, temp=19.200000, humi=68.200000, forecast=1, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-28 06:31:01] >  ButtonControl::stop()
+[0m[32m[2023-10-28 07:31:05] >  ButtonControl::stop()
+[0m[32m[2023-10-28 17:19:36] >  Big difference in temperature/hygro:  temp=8.400000, humi=68.700000, tempCorrOld=20.285333, tempCorr=7.484000, re-read
+[0m[32m[2023-10-28 20:29:33] >  Big difference in temperature/hygro:  temp=7.700000, humi=72.600000, tempCorrOld=19.532000, tempCorr=6.732000, re-read
+[0m[32m[2023-10-29 05:34:45] >  Start Cond: tempCorr=17.453333, temp=18.300000, humi=63.500000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-29 05:34:45] >  ButtonControl::start()
+[0m[32m[2023-10-29 08:17:59] >  Stop Cond: shutdownPeriod=0, temp=19.400000, humi=63.500000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-29 08:17:59] >  ButtonControl::stop()
+[0m[32m[2023-10-29 09:18:03] >  ButtonControl::stop()
+[0m[32m[2023-10-29 14:04:52] >  Gauge: TIMEOUT ! nbLow=50002, nbHigh=0
+[0m[32m[2023-10-29 14:36:37] >  Big difference in temperature/hygro:  temp=13.500000, humi=63.500000, tempCorrOld=19.050667, tempCorr=12.653333, re-read
+[0m[32m[2023-10-29 18:01:54] >  Start Cond: tempCorr=18.476000, temp=19.300000, humi=61.800000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-29 18:01:54] >  ButtonControl::start()
+[0m[32m[2023-10-29 18:26:16] >  ButtonControl::resetError()
+[0m[32m[2023-10-29 18:27:31] >  Start Cond: tempCorr=18.460000, temp=19.300000, humi=63.000000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-29 18:27:31] >  ButtonControl::start()
+[0m[32m[2023-10-29 19:57:45] >  Stop Cond: shutdownPeriod=0, temp=19.900000, humi=61.700000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-10-29 19:57:45] >  ButtonControl::stop()
+[0m[32m[2023-10-29 20:57:49] >  ButtonControl::stop()
+[0m[32m[2023-10-29 22:41:42] >  Gauge: TIMEOUT ! nbLow=50002, nbHigh=0
+[0m[32m[2023-10-30 01:38:28] >  Gauge: TIMEOUT ! nbLow=50002, nbHigh=0
+[0m[31m[2023-10-30 10:43:56] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[32m[2023-10-31 01:25:27] >  Big difference in temperature/hygro:  temp=6.400000, humi=62.500000, tempCorrOld=18.196000, tempCorr=5.566667, re-read
+[0m[31m[2023-10-31 19:07:09] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-31 19:07:22] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-10-31 19:07:37] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[32m[2023-10-31 21:26:25] >  Big difference in temperature/hygro:  temp=6.500000, humi=60.500000, tempCorrOld=18.321333, tempCorr=5.693333, re-read
+[0m[32m[2023-11-01 01:43:15] >  Big difference in temperature/hygro:  temp=12.800000, humi=12.800000, tempCorrOld=17.045333, tempCorr=12.629333, re-read
+[0m[32m[2023-11-01 04:00:00] >  Start Cond: tempCorr=16.654667, temp=17.600000, humi=70.900000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-11-01 04:00:00] >  ButtonControl::start()
+[0m[32m[2023-11-01 04:20:14] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-01 04:20:23] >  incPower(1), tempCorr=16.658667, temp=17.600000, humi=70.600000
+[0m[32m[2023-11-01 05:57:23] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-01 05:57:33] >  incPower(-1), tempCorr=17.584000, temp=18.500000, humi=68.700000
+[0m[32m[2023-11-01 07:00:33] >  Stop Cond: shutdownPeriod=1, temp=18.900000, humi=66.900000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-11-01 07:00:33] >  ButtonControl::stop()
+[0m[32m[2023-11-01 08:00:37] >  ButtonControl::stop()
+[0m[32m[2023-11-01 09:21:38] >  Gauge: TIMEOUT ! nbLow=50002, nbHigh=0
+[0m[32m[2023-11-01 16:00:00] >  Start Cond: tempCorr=17.281333, temp=18.200000, humi=68.900000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-11-01 16:00:00] >  ButtonControl::start()
+[0m[32m[2023-11-01 16:20:14] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-01 16:20:23] >  incPower(1), tempCorr=17.280000, temp=18.200000, humi=69.000000
+[0m[32m[2023-11-01 17:06:23] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-01 17:06:33] >  incPower(-1), tempCorr=17.578667, temp=18.500000, humi=69.100000
+[0m[32m[2023-11-01 17:07:33] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-01 17:07:42] >  incPower(1), tempCorr=17.481333, temp=18.400000, humi=68.900000
+[0m[32m[2023-11-01 17:10:42] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-01 17:10:52] >  incPower(-1), tempCorr=17.581333, temp=18.500000, humi=68.900000
+[0m[32m[2023-11-01 17:44:52] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-01 17:45:01] >  incPower(1), tempCorr=17.088000, temp=18.000000, humi=68.400000
+[0m[32m[2023-11-01 17:46:01] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-01 17:46:11] >  incPower(-1), tempCorr=17.789333, temp=18.700000, humi=68.300000
+[0m[32m[2023-11-01 19:56:11] >  Stop Cond: shutdownPeriod=0, temp=19.400000, humi=67.300000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-11-01 19:56:11] >  ButtonControl::stop()
+[0m[32m[2023-11-01 20:56:15] >  ButtonControl::stop()
+[0m[32m[2023-11-02 04:00:00] >  Start Cond: tempCorr=17.094667, temp=17.900000, humi=60.400000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-11-02 04:00:00] >  ButtonControl::start()
+[0m[32m[2023-11-03 23:39:11] >  OpenWeatherClient is starting
+[0m[32m[2023-11-03 23:39:11] >  LcdReader is starting
+[0m[32m[2023-11-03 23:39:11] >  DhtReader is starting
+[0m[32m[2023-11-03 23:39:11] >  Gauge is starting
+[0m[32m[2023-11-03 23:39:16] >  AutoMode is starting
+[0m[32m[2023-11-03 23:39:16] >  WebServer: Service is starting !
+[0m[32m[2023-11-03 23:39:46] >  ButtonControl::resetError()
+[0m[32m[2023-11-04 04:00:00] >  Start Cond: tempCorr=15.285333, temp=16.200000, humi=68.600000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-11-04 04:00:00] >  ButtonControl::start()
+[0m[32m[2023-11-04 04:20:14] >  ButtonControl::incPower(3)
+[0m[32m[2023-11-04 04:20:25] >  incPower(3), tempCorr=15.288000, temp=16.200000, humi=68.400000
+[0m[32m[2023-11-04 04:47:25] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 04:47:35] >  incPower(-1), tempCorr=15.588000, temp=16.500000, humi=68.400000
+[0m[32m[2023-11-04 05:39:35] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 05:39:44] >  incPower(-1), tempCorr=16.513333, temp=17.400000, humi=66.500000
+[0m[32m[2023-11-04 05:40:44] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 05:40:54] >  incPower(1), tempCorr=16.414667, temp=17.300000, humi=66.400000
+[0m[32m[2023-11-04 05:42:54] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 05:43:03] >  incPower(-1), tempCorr=16.517333, temp=17.400000, humi=66.200000
+[0m[32m[2023-11-04 07:13:03] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 07:13:13] >  incPower(-1), tempCorr=17.536000, temp=18.400000, humi=64.800000
+[0m[32m[2023-11-04 07:14:13] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 07:14:22] >  incPower(1), tempCorr=17.437333, temp=18.300000, humi=64.700000
+[0m[32m[2023-11-04 07:19:22] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 07:19:32] >  incPower(-1), tempCorr=17.536000, temp=18.400000, humi=64.800000
+[0m[32m[2023-11-04 07:43:32] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 07:43:41] >  incPower(1), tempCorr=17.440000, temp=18.300000, humi=64.500000
+[0m[32m[2023-11-04 07:44:41] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 07:44:51] >  incPower(-1), tempCorr=17.538667, temp=18.400000, humi=64.600000
+[0m[32m[2023-11-04 09:36:51] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 09:37:00] >  incPower(1), tempCorr=17.489333, temp=18.300000, humi=60.800000
+[0m[32m[2023-11-04 09:38:00] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 09:38:10] >  incPower(-1), tempCorr=17.585333, temp=18.400000, humi=61.100000
+[0m[32m[2023-11-04 09:41:10] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 09:41:19] >  incPower(1), tempCorr=17.478667, temp=18.300000, humi=61.600000
+[0m[32m[2023-11-04 09:45:19] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 09:45:29] >  incPower(-1), tempCorr=17.578667, temp=18.400000, humi=61.600000
+[0m[32m[2023-11-04 09:46:29] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 09:46:38] >  incPower(1), tempCorr=17.478667, temp=18.300000, humi=61.600000
+[0m[32m[2023-11-04 09:49:38] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 09:49:48] >  incPower(-1), tempCorr=17.580000, temp=18.400000, humi=61.500000
+[0m[32m[2023-11-04 09:51:48] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 09:51:57] >  incPower(1), tempCorr=17.481333, temp=18.300000, humi=61.400000
+[0m[32m[2023-11-04 09:55:57] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 09:56:07] >  incPower(-1), tempCorr=17.581333, temp=18.400000, humi=61.400000
+[0m[32m[2023-11-04 09:57:07] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 09:57:16] >  incPower(1), tempCorr=17.482667, temp=18.300000, humi=61.300000
+[0m[32m[2023-11-04 09:59:16] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 09:59:26] >  incPower(-1), tempCorr=17.581333, temp=18.400000, humi=61.400000
+[0m[32m[2023-11-04 10:01:26] >  ButtonControl::incPower(1)
+[0m[32m[2023-11-04 10:01:35] >  incPower(1), tempCorr=17.482667, temp=18.300000, humi=61.300000
+[0m[32m[2023-11-04 10:02:35] >  ButtonControl::incPower(-1)
+[0m[32m[2023-11-04 10:02:45] >  incPower(-1), tempCorr=17.584000, temp=18.400000, humi=61.200000
+[0m[32m[2023-11-04 12:25:45] >  Stop Cond: shutdownPeriod=0, temp=19.400000, humi=60.700000, forecast=0, currentMode=1, veryColdCondition=0
+[0m[32m[2023-11-04 12:25:45] >  ButtonControl::stop()
+[0m[31m[2023-11-04 13:06:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:06:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:06:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:06:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:07:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:07:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:07:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:07:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:07:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:07:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:08:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:08:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:08:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:08:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:08:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:08:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:09:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:09:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:09:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:09:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:09:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:09:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:10:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:10:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:10:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:10:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:10:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:10:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:11:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:11:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:11:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:11:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:11:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:11:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:12:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:12:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:12:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:12:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:12:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:12:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:13:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:13:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:13:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:13:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:13:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:13:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:14:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:14:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:14:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:14:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:14:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:14:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:15:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:15:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:15:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:15:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:15:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:15:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:16:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:16:14] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:16:24] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:16:34] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:16:44] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:16:54] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m[31m[2023-11-04 13:17:04] >  OpenWeatherClient failed to send http request: Connection to website failed (BIO_write)
+[0m                                                                                                                          
