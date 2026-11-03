@@ -30,6 +30,7 @@
 #include "libnavajo/libnavajo.hh"
 #include "LcdReader.hh"
 #include "Stats.hh"
+#include "PelletConsumption.hh"
 
 #define  LCD_DGRAM  0x80
 
@@ -231,27 +232,7 @@ string LcdReader::getInfoJson () const
   if ( currentOperatingMode == OperatingMode::on && getPower ())
   {
     writer.String ("conso");
-    switch ( getPower ())
-    {
-      case 1:
-        writer.Double (3 * 3.1 / 14.1);
-        break;
-      case 2:
-        writer.Double (3 * 3.1 / 8.4);
-        break;
-      case 3:
-        writer.Double (3 * 3.1 / 5.9);
-        break;
-      case 4:
-        writer.Double (3 * 3.1 / 4.5);
-        break;
-      case 5:
-        writer.Double (3 * 3.1 / 3.9);
-        break;
-      case 6:
-        writer.Double (3 * 3.1 / 3.5);
-        break;
-    }
+    writer.Double (pelletKgPerHour(getPower()));
   }
   writer.EndObject ();
   resultat = buffer.GetString ();

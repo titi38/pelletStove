@@ -1,4 +1,5 @@
 #include "Stats.hh"
+#include "PelletConsumption.hh"
 #include "rapidjson/prettywriter.h"
 #include <chrono>
 #include <algorithm>
@@ -34,11 +35,18 @@ void Stats::closeQuarterLocked()
     // If power was not yet observed, return zero; otherwise average over
     // observed seconds, not LCD message counts.
     dailyStats_[nextSlot_][2] = powerSeconds_ > 0 ? powerIntegral_ / powerSeconds_ : 0;
+    outdoorPresent_[nextSlot_] = hasOutdoor_;
+    dailyStats_[nextSlot_][3] = hasOutdoor_ ? outdoorTemp_ : 0;
+    dailyStats_[nextSlot_][4] = hasOutdoor_ ? outdoorHumi_ : 0;
+    consumptionPresent_[nextSlot_] = powerSeconds_ > 0;
+    // Store MASS in kg for the completed 15-minute slot, not kg/h.
+    // consumptionIntegral_ is the integral of kg/h * seconds.
+    dailyStats_[nextSlot_][5] = powerSeconds_ > 0 ? consumptionIntegral_ / 3600.0 : 0;
     nextSlot_ = (nextSlot_ + 1) % kSlots;
     countSlots_ = (countSlots_ < kSlots ? countSlots_ + 1 : kSlots);
     sumsTemp_ = sumsHumi_ = 0;
     countHT_ = 0;
-    powerIntegral_ = powerSeconds_ = 0;
+    powerIntegral_ = powerSeconds_ = consumptionIntegral_ = 0;
 }
 
 void Stats::accountPowerLocked(std::time_t until)
@@ -47,6 +55,7 @@ void Stats::accountPowerLocked(std::time_t until)
     // The known power remains in effect until the next LCD update.
     double seconds = static_cast<double>(until - lastPowerTime_);
     powerIntegral_ += seconds * currentPower_;
+    consumptionIntegral_ += seconds * pelletKgPerHour(currentPower_);
     powerSeconds_ += seconds;
     lastPowerTime_ = until;
 }
@@ -60,7 +69,7 @@ void Stats::advanceLocked(std::time_t now)
     }
     if (now < quarterStart_) { // clock corrected backwards
         quarterStart_ = quarterStart(now);
-        sumsTemp_ = sumsHumi_ = powerIntegral_ = powerSeconds_ = 0;
+        sumsTemp_ = sumsHumi_ = powerIntegral_ = powerSeconds_ = consumptionIntegral_ = 0;
         countHT_ = 0;
         lastPowerTime_ = now;
         return;
@@ -69,7 +78,7 @@ void Stats::advanceLocked(std::time_t now)
     if (now - quarterStart_ > kSlots * 900) {
         quarterStart_ = quarterStart(now);
         countSlots_ = nextSlot_ = 0;
-        sumsTemp_ = sumsHumi_ = powerIntegral_ = powerSeconds_ = 0;
+        sumsTemp_ = sumsHumi_ = powerIntegral_ = powerSeconds_ = consumptionIntegral_ = 0;
         countHT_ = 0;
         lastPowerTime_ = now;
         return;
@@ -98,6 +107,16 @@ void Stats::updateHTStats(double temp, double humi)
     ++countHT_;
 }
 
+void Stats::updateOutdoorStats(double temp, double humi)
+{
+    if (!std::isfinite(temp) || !std::isfinite(humi) || humi < 0 || humi > 100 || temp < -90 || temp > 65) return;
+    std::lock_guard<std::mutex> lock(mutex_);
+    advanceLocked(std::time(nullptr));
+    outdoorTemp_ = temp;
+    outdoorHumi_ = humi;
+    hasOutdoor_ = true;
+}
+
 void Stats::updateRunStats(unsigned char power)
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -120,15 +139,28 @@ std::string Stats::getStatsJson() const
 
     StringBuffer buffer;
     Writer<StringBuffer> writer(buffer);
-    writer.SetMaxDecimalPlaces(2);
+    writer.SetMaxDecimalPlaces(6); // Preserve small quarter-hour masses (kg).
     writer.StartObject();
     writer.Key("hour"); writer.Int(tm.tm_hour);
     writer.Key("quarter"); writer.Int(tm.tm_min / 15);
+    // Current (unfinished) quarter: useful to display live consumption without
+    // pretending that the 15-minute period is already complete.
+    writer.Key("current"); writer.StartObject();
+    writer.Key("startEpoch"); writer.Int64(static_cast<int64_t>(quarterStart_));
+    writer.Key("observedSeconds"); writer.Double(powerSeconds_);
+    writer.Key("consumptionKg");
+    if (hasPower_ && powerSeconds_ > 0) writer.Double(consumptionIntegral_ / 3600.0);
+    else writer.Null();
+    writer.EndObject();
     writer.Key("stats"); writer.StartArray();
     for (int n = 0; n < countSlots_; ++n) {
         const int idx = (nextSlot_ + kSlots - countSlots_ + n) % kSlots;
         writer.StartArray();
-        for (int j = 0; j < 3; ++j) writer.Double(dailyStats_[idx][j]);
+        for (int j = 0; j < 6; ++j) {
+            if ((j == 3 || j == 4) && !outdoorPresent_[idx]) writer.Null();
+            else if (j == 5 && !consumptionPresent_[idx]) writer.Null();
+            else writer.Double(dailyStats_[idx][j]);
+        }
         writer.EndArray();
     }
     writer.EndArray();

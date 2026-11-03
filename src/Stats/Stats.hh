@@ -47,12 +47,17 @@ class Stats
     double sumsTemp_ = 0, sumsHumi_ = 0;
     int countHT_ = 0;
     double powerIntegral_ = 0; // power * seconds in current quarter
+    double consumptionIntegral_ = 0; // kg/h * seconds
+    double outdoorTemp_ = 0, outdoorHumi_ = 0;
+    bool hasOutdoor_ = false;
     double powerSeconds_ = 0;
     int currentPower_ = 0;
     bool hasPower_ = false;
     std::time_t lastPowerTime_ = 0;
     std::time_t quarterStart_ = 0;
-    double dailyStats_[kSlots][3] = {};
+    double dailyStats_[kSlots][6] = {};
+    bool outdoorPresent_[kSlots] = {};
+    bool consumptionPresent_[kSlots] = {};
     int nextSlot_ = 0, countSlots_ = 0;
 
     static std::time_t quarterStart(std::time_t now);
@@ -68,6 +73,7 @@ class Stats
     void updateIfEndQuarter();
     void updateHTStats(double temp, double humi);
     void updateRunStats(unsigned char power);
+    void updateOutdoorStats(double temp, double humi);
     std::string getStatsJson() const;
 };
 

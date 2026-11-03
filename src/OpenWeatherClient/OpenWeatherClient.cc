@@ -29,6 +29,7 @@
 #include <iostream>
 
 #include "OpenWeatherClient.hh"
+#include "Stats.hh"
 
 #include "libnavajo/nvjGzip.h"
 
@@ -126,6 +127,10 @@ if (found) *found='\0';
         if (current_value.HasMember("humidity") && current_value["humidity"].IsNumber())
           humi = current_value[ "humidity" ].GetInt ();
         else humi = 0;
+
+        if (current_value.HasMember("temp_c") && current_value["temp_c"].IsNumber()
+            && current_value.HasMember("humidity") && current_value["humidity"].IsNumber())
+          Stats::getInstance()->updateOutdoorStats(temp, humi);
  
         if (current_value.HasMember("condition") && current_value["condition"].IsObject()) 
         {	
