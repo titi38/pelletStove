@@ -28,6 +28,10 @@
 #include <unistd.h>
 #include <csignal>
 #include <string.h>
+#include <deque>
+#include <mutex>
+#include <ctime>
+#include <chrono>
 #include <wiringPi.h>
 
 #include "PelletService.hh"
@@ -39,6 +43,64 @@
 using namespace rapidjson;
 
 WebServer *webServer = NULL;
+
+// Tampon de logs en mémoire : pas de dépendance envers ZNeTS.
+// On garde seulement les messages de cette exécution, sans fichier de log.
+class PelletLogOutput : public LogOutput {
+public:
+  struct Entry { std::string date, level, message, details; };
+  void initialize() {};
+  void append(const NvjLogSeverity &level, const std::string &message, const std::string &details) {
+    static const char *unknown = "OTHER";
+    const char *name = unknown;
+    switch(level) {
+      case NVJ_DEBUG: name="DEBUG"; break;
+      case NVJ_INFO: name="INFO"; break;
+      case NVJ_WARNING: name="WARNING"; break;
+      case NVJ_ALERT: name="ALERT"; break;
+      case NVJ_ERROR: name="ERROR"; break;
+      case NVJ_FATAL: name="FATAL"; break;
+      default: break;
+    }
+    const auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm local{}; localtime_r(&now, &local);
+    char date[32]; std::strftime(date,sizeof(date),"%Y-%m-%d %H:%M:%S",&local);
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (entries_.size() >= 500) entries_.pop_front();
+    entries_.push_back({date,name,message,details});
+  }
+  std::deque<Entry> snapshot() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return entries_;
+  }
+private:
+  mutable std::mutex mutex_;
+  std::deque<Entry> entries_;
+};
+
+static PelletLogOutput *pelletLogOutput = nullptr;
+
+bool PelletLogs::getPage(HttpRequest *request, HttpResponse *response) {
+  GenericStringBuffer<UTF8<>> buffer;
+  Writer<GenericStringBuffer<UTF8<>>> writer(buffer);
+  writer.StartObject();
+  writer.String("logs"); writer.StartArray();
+  if (pelletLogOutput) {
+    for (const auto &row : pelletLogOutput->snapshot()) {
+      writer.StartObject();
+      writer.String("date"); writer.String(row.date.c_str());
+      writer.String("level"); writer.String(row.level.c_str());
+      writer.String("message"); writer.String(row.message.c_str());
+      writer.String("details"); writer.String(row.details.c_str());
+      writer.EndObject();
+    }
+  }
+  writer.EndArray(); writer.EndObject();
+  response->setCORS();
+  return fromString(buffer.GetString(),response);
+}
+
+
 
 /***********************************************************************/
 
@@ -58,6 +120,8 @@ int main ()
 
 
   NVJ_LOG->addLogOutput (new LogStdOutput);
+  pelletLogOutput = new PelletLogOutput;
+  NVJ_LOG->addLogOutput (pelletLogOutput);
   webServer = new WebServer;
 
   PelletService service;
@@ -308,6 +372,37 @@ bool PelletCommand::PelletCommand::getPage ( HttpRequest *request, HttpResponse 
 }
 
 /***********************************************************************/
+// Configuration des périodes de présence (JSON RapidJSON, réponse HTTP classique).
+bool PelletSchedule::getPage(HttpRequest *request, HttpResponse *response)
+{
+  response->setCORS();
+  std::string action;
+  if (!request->getParameter("action", action))
+    return fromString(autoMode->getScheduleJson(), response);
+
+  std::string error, value;
+  bool success = false;
+  if (action == "save") {
+    if (request->getParameter("config", value))
+      success = autoMode->saveScheduleJson(value, error);
+    else error = "Missing config";
+
+  } else if (action == "override") {
+    if (request->getParameter("value", value))
+      success = autoMode->setPresenceOverride(value, error);
+    else error = "Missing override value";
+  } else error = "Unknown action";
+
+  GenericStringBuffer<UTF8<>> buffer;
+  Writer<GenericStringBuffer<UTF8<>>> writer(buffer);
+  writer.StartObject();
+  writer.Key("success"); writer.Bool(success);
+  if (!error.empty()) { writer.Key("error"); writer.String(error.c_str()); }
+  writer.EndObject();
+  return fromString(buffer.GetString(), response);
+}
+
+/***********************************************************************/
 
 PelletService::PelletService ()
 {
@@ -328,6 +423,12 @@ PelletService::PelletService ()
 
   autoMode = new AutoMode (buttonControl, dhtReader, lcdReader, &openWeatherClient);
 
+  pelletSchedule = new PelletSchedule(autoMode);
+  add("schedule.json", pelletSchedule);
+
+  pelletLogs = new PelletLogs ();
+  add ("logs.json", pelletLogs);
+
   pelletStats = new PelletStats ();
   add ("stats.json", pelletStats);
 
@@ -344,6 +445,8 @@ PelletService::PelletService ()
 
 PelletService::~PelletService ()
 {
+  delete pelletLogs;
+  delete pelletSchedule;
   delete pelletStats;
   delete pelletCommand;
   delete pelletInfoMonitor;
