@@ -238,6 +238,9 @@ bool PelletCommand::PelletCommand::getPage ( HttpRequest *request, HttpResponse 
             else
               if ( request->hasParameter ("resetAlert"))
               {
+                if (autoMode->isAlarmMode(lcdReader->getCurrentOperatingMode()))
+                  autoMode->onAlarm(lcdReader->getLcdMessage());
+                NVJ_LOG->append(NVJ_INFO,"[USER] Acquittement alarme demande; regulation non reactivee");
                 buttonControl->resetError ();
                 runSuccess = true;
               }

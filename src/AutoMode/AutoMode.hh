@@ -55,6 +55,8 @@ class AutoMode
     };
     void start ( Mode m );
     void stop ();
+    void onAlarm(const std::string &reason);
+    bool isAlarmMode(OperatingMode mode) const;
     std::string getInfoJson () const;
     // Programmation hebdomadaire - lundi=0, dimanche=6
     struct PresencePeriod { int start; int end; }; // minutes depuis 00:00
@@ -74,6 +76,9 @@ class AutoMode
     enum class PresenceOverride { none, arrive, leave };
     PresenceOverride presenceOverride = PresenceOverride::none;
     bool overrideOriginalPresence = false;
+    std::time_t overrideExpiresAt = 0;
+    std::atomic<bool> arriveStartPending{false};
+    std::time_t findPeriodEnd(std::time_t now, bool activeOnly) const;
     std::string schedulePath;
     bool isScheduledPresence(const std::tm &now) const;
     bool saveScheduleToDisk(const std::array<std::vector<PresencePeriod>, 7> &days,
@@ -83,7 +88,14 @@ class AutoMode
     static std::string timeString(int minutes);
     static bool parseTime(const std::string &value, int &minutes);
 
-    volatile Mode currentMode = Mode::off;
+    std::atomic<Mode> currentMode{Mode::off};
+    std::atomic<bool> alarmLatched{false};
+    std::atomic<bool> leaveStopPending{false};
+    std::string lastAlarm;
+    std::string alarmStatePath;
+    void saveAlarmState();
+    void loadAlarmState();
+    void responsiveSleep(unsigned seconds);
     ButtonControl *buttonControl = nullptr;
     DhtReader *dhtReader = nullptr;
     LcdReader *lcdReader = nullptr;

@@ -91,6 +91,8 @@ AutoMode::AutoMode ( ButtonControl *bc, DhtReader *dht, LcdReader *lcd, OpenWeat
     }
   }
 
+  alarmStatePath = schedulePath + ".alarm-state";
+  loadAlarmState();
   thread_loop = new thread (&AutoMode::loop, this);
   NVJ_LOG->append (NVJ_INFO, "AutoMode is starting");
 }
@@ -121,9 +123,9 @@ void AutoMode::loop ()
 
   while ( !exiting )
   {
-    if (( currentMode == Mode::off )
-        || ( lcdReader->getCurrentOperatingMode () == OperatingMode::alertTempFume )
-        || ( lcdReader->getCurrentOperatingMode () == OperatingMode::alertTermDepr ))
+    const OperatingMode observed = lcdReader->getCurrentOperatingMode();
+    if (isAlarmMode(observed)) onAlarm(lcdReader->getLcdMessage());
+    if (currentMode == Mode::off || alarmLatched)
     {
       sleep (1);
       continue;
@@ -131,7 +133,7 @@ void AutoMode::loop ()
 
     if ( lcdReader->getCurrentOperatingMode () == OperatingMode::starting )
     {
-      sleep (10);
+      responsiveSleep (10);
       continue;
     }
 
@@ -140,7 +142,7 @@ void AutoMode::loop ()
     {
       buttonControl->stop ();
       needCleaning = false;
-      sleep (20 * 60); // 20mn
+      responsiveSleep (20 * 60); // 20mn
     }
 
     std::time_t time_temp = std::time (nullptr);
@@ -148,13 +150,29 @@ void AutoMode::loop ()
     const std::tm *tm_local = localtime_r(&time_temp, &localTime);
 
     OperatingMode operatingMode = lcdReader->getCurrentOperatingMode ();
+    // Une demande explicite d'arret ne depend pas de la sonde DHT.
+    // En cas de mesure invalide, on doit quand meme pouvoir arreter le poele.
+    if (leaveStopPending && operatingMode == OperatingMode::on &&
+        currentMode == Mode::normal && !alarmLatched) {
+      if (isAlarmMode(lcdReader->getCurrentOperatingMode())) {
+        onAlarm(lcdReader->getLcdMessage());
+        continue;
+      }
+      leaveStopPending = false;
+      NVJ_LOG->append(NVJ_INFO, "[PRESENCE] Arret explicite: commande envoyee");
+      buttonControl->stop();
+      stopTime = std::chrono::system_clock::now();
+      needCleaning = true;
+      responsiveSleep(10);
+      continue;
+    }
 
     double temp = dhtReader->getTemp ();
     double humi = dhtReader->getHumi ();
-    if (( temp < -100.0 ) || ( temp > 100.0 ) || ( humi < .0 ) || ( humi > 100.0 ))
+    if (!std::isfinite(temp) || !std::isfinite(humi) || ( temp < -100.0 ) || ( temp > 100.0 ) || ( humi < .0 ) || ( humi > 100.0 ))
     {
       NVJ_LOG->append (NVJ_INFO,
-                       "Bad values of temperature/hygro:  temp=" + to_string (temp) + ", humi=" + to_string (humi)
+                       "[CAPTEUR] Mesure invalide; aucune commande de chauffage: temp=" + to_string (temp) + ", humi=" + to_string (humi)
                        + ", re-read");
       sleep (10);
       continue;
@@ -182,13 +200,24 @@ nbStrangeTemperature++;
     // Snapshot de la programmation, sans garder le mutex pendant les commandes physiques.
     bool scheduledPresence = false;
     bool effectivePresence = false;
+    bool forcedArrival = false;
+    bool forcedDeparture = false;
+    bool overrideExpired = false;
     double targetTemperature = TEMP_CONSIGNE;
     {
       std::lock_guard<std::mutex> lock(scheduleMutex);
       scheduledPresence = isScheduledPresence(*tm_local);
       if (presenceOverride != PresenceOverride::none &&
-          scheduledPresence != overrideOriginalPresence)
-        presenceOverride = PresenceOverride::none; // prochaine transition hebdomadaire
+          (overrideExpiresAt == 0 || time_temp >= overrideExpiresAt)) {
+        NVJ_LOG->append(NVJ_INFO, "[PRESENCE] Derogation expiree: retour a la programmation");
+        overrideExpired = true;
+        presenceOverride = PresenceOverride::none;
+        leaveStopPending = false;
+        arriveStartPending = false;
+        overrideExpiresAt = 0;
+      }
+      forcedArrival = presenceOverride == PresenceOverride::arrive;
+      forcedDeparture = presenceOverride == PresenceOverride::leave;
       effectivePresence = presenceOverride == PresenceOverride::arrive ? true :
                           presenceOverride == PresenceOverride::leave ? false : scheduledPresence;
       targetTemperature = currentMode == Mode::normal ?
@@ -215,24 +244,51 @@ nbStrangeTemperature++;
 
     veryColdCondition = tempCorr < TEMP_VERYCOLD;
 
+    // A expiration d'un retour anticipe, hors programmation, l'arret ne
+    // doit pas attendre les 90 minutes. L'antigel garde sa priorite.
+    if (overrideExpired && !effectivePresence && !veryColdCondition && operatingMode == OperatingMode::on) {
+      leaveStopPending = true;
+      NVJ_LOG->append(NVJ_INFO, "[PRESENCE] Fin de derogation: arret normal demande");
+    }
+    // Depart explicite : arret normal, sans attendre les 90 minutes.
+    // La commande est envoyee uniquement lorsque le LCD confirme ON.
+    if (leaveStopPending && operatingMode == OperatingMode::off) {
+      leaveStopPending = false;
+      NVJ_LOG->append(NVJ_INFO,"[PRESENCE] Arret confirme par le LCD");
+    }
+    if (arriveStartPending && forcedArrival && operatingMode == OperatingMode::off && !alarmLatched && currentMode == Mode::normal) {
+      if (isAlarmMode(lcdReader->getCurrentOperatingMode())) { onAlarm(lcdReader->getLcdMessage()); continue; }
+      arriveStartPending = false;
+      NVJ_LOG->append(NVJ_INFO, "[PRESENCE] Retour anticipe: commande de demarrage envoyee");
+      buttonControl->start();
+      startTime = std::chrono::system_clock::now();
+      responsiveSleep(20 * 60);
+      continue;
+    }
+    if (arriveStartPending && operatingMode == OperatingMode::on) {
+      arriveStartPending = false;
+      NVJ_LOG->append(NVJ_INFO,"[PRESENCE] Demarrage confirme par le LCD");
+    }
+    // Une demande de depart prime sur les 90 minutes et sur la temperature.
+    // Elle est conservee tant que le LCD ne confirme pas OFF.
+    if (leaveStopPending && operatingMode != OperatingMode::on && operatingMode != OperatingMode::off) {
+      responsiveSleep(1);
+      continue;
+    }
+
     // if the pellet is running...
     if ( operatingMode == OperatingMode::on )
     {
       // if the temp/hygro has been reached
-      if ((
-              ( currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE )
-
-	      || ( tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN)
-
-	      // Si on est entre 9h (ou 11h) et 17h, qu'il fait beau et pas suffisamment froid. On arrête 
-	      || ( tm_local->tm_hour >= (9 + ((tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1) ? 2 : 0))
-                   && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast ()
-                   && tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN - DIFF_TEMP_CLEARCAST )
-
-              || ( shutdownPeriod && !veryColdCondition ))
-             // || ( veryColdCondition && tempCorr >= targetTemperature - DIFF_TEMP_VERYCOLD ))
-          && ( std::chrono::duration_cast<std::chrono::minutes> (std::chrono::system_clock::now () - startTime).count ()
-               >= 90 ))
+      if (!forcedArrival &&
+          ((currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE)
+           || tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN
+           || (tm_local->tm_hour >= (9 + ((tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1) ? 2 : 0))
+               && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast()
+               && tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN - DIFF_TEMP_CLEARCAST)
+           || (shutdownPeriod && !veryColdCondition))
+          && std::chrono::duration_cast<std::chrono::minutes>(
+               std::chrono::system_clock::now() - startTime).count() >= 90)
       {
 
 	bool expr1 = (currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE);
@@ -261,13 +317,17 @@ nbStrangeTemperature++;
                          "Stop Cond: shutdownPeriod=" + to_string (shutdownPeriod) + ", tempCorr=" + to_string (tempCorr) + ", temp=" + to_string (temp)
                          + ", humi=" + to_string (humi) + ", forecast="
                          + to_string (openWeatherClient->isClearForcast ()) + ", currentMode="
-                         + to_string (static_cast<int>(currentMode)) + ", veryColdCondition="
+                         + to_string (static_cast<int>(currentMode.load())) + ", veryColdCondition="
                          + to_string (veryColdCondition) + "DEBUG: " + debugOutput.str());
+        if (isAlarmMode(lcdReader->getCurrentOperatingMode()) || alarmLatched || currentMode == Mode::off) {
+          if (isAlarmMode(lcdReader->getCurrentOperatingMode())) onAlarm(lcdReader->getLcdMessage());
+          continue;
+        }
         buttonControl->stop ();
         stopTime = std::chrono::system_clock::now ();
 //        veryColdCondition = false;
         needCleaning = true;
-        sleep (60 * 60); // 1h
+        responsiveSleep (60 * 60); // 1h
         continue;
       }
       // else
@@ -286,12 +346,13 @@ nbStrangeTemperature++;
                          "incPower(" + to_string (deltaPower) + "), tempCorr=" + to_string (tempCorr) + ", temp="
                          + to_string (temp) + ", humi=" + to_string (humi));
       }
-      sleep (60); // 1mn
+      responsiveSleep (60); // 1mn
       continue;
     }
 
     // if the pellet is stopped: startCond ?
-    if (( operatingMode == OperatingMode::off )
+    if (!alarmLatched && currentMode != Mode::off && ( operatingMode == OperatingMode::off )
+        && !forcedDeparture && !leaveStopPending
 
 	&& 
 	(( !shutdownPeriod
@@ -311,16 +372,20 @@ nbStrangeTemperature++;
 	  // On démarre plus après 21h30.
           && (currentMode == Mode::normal || !(tm_local->tm_hour == 21 && tm_local->tm_min >= 30)))
 		
-	||  veryColdCondition ))
+	||  (veryColdCondition && !forcedDeparture) ))
     {
       NVJ_LOG->append (NVJ_INFO,
                        "Start Cond: tempCorr=" + to_string (tempCorr) + ", temp=" + to_string (temp) + ", humi="
                        + to_string (humi) + ", forecast=" + to_string (openWeatherClient->isClearForcast ())
-                       + ", currentMode=" + to_string (static_cast<int>(currentMode)) + ", veryColdCondition="
+                       + ", currentMode=" + to_string (static_cast<int>(currentMode.load())) + ", veryColdCondition="
                        + to_string (veryColdCondition));
+      if (isAlarmMode(lcdReader->getCurrentOperatingMode()) || alarmLatched || currentMode == Mode::off) {
+        if (isAlarmMode(lcdReader->getCurrentOperatingMode())) onAlarm(lcdReader->getLcdMessage());
+        continue;
+      }
       buttonControl->start ();
       startTime = std::chrono::system_clock::now ();
-      sleep (20 * 60); // 20mn
+      responsiveSleep (20 * 60); // 20mn
       continue;
     }
     sleep(1); // éviter une boucle CPU intensive quand aucune action n’est nécessaire
@@ -331,7 +396,24 @@ nbStrangeTemperature++;
 
 void AutoMode::start ( AutoMode::Mode m )
 {
+  if (isAlarmMode(lcdReader->getCurrentOperatingMode())) {
+    onAlarm(lcdReader->getLcdMessage());
+    NVJ_LOG->append(NVJ_WARNING, "[AUTO] Activation refusee: alarme toujours presente");
+    return;
+  }
+  if (alarmLatched) {
+    alarmLatched = false;
+    saveAlarmState();
+    NVJ_LOG->append(NVJ_INFO, "[AUTO] Re-armement manuel apres alarme");
+  }
+  { std::lock_guard<std::mutex> lock(scheduleMutex);
+    presenceOverride = PresenceOverride::none;
+    overrideExpiresAt = 0;
+    arriveStartPending = false;
+    leaveStopPending = false;
+  }
   currentMode = m;
+  NVJ_LOG->append(NVJ_INFO, "[AUTO] Mode active par commande utilisateur");
 }
 
 /***********************************************************************/
@@ -339,6 +421,10 @@ void AutoMode::start ( AutoMode::Mode m )
 void AutoMode::stop ()
 {
   currentMode = Mode::off;
+  leaveStopPending = false;
+  { std::lock_guard<std::mutex> lock(scheduleMutex);
+    arriveStartPending = false; presenceOverride = PresenceOverride::none; overrideExpiresAt = 0; }
+  NVJ_LOG->append(NVJ_INFO, "[AUTO] Mode desactive par commande utilisateur");
 }
 
 /***********************************************************************/
@@ -370,6 +456,9 @@ std::string AutoMode::getInfoJson () const
       break;
   }
 
+  writer.String("alarmLatched"); writer.Bool(alarmLatched);
+  { std::lock_guard<std::mutex> lock(scheduleMutex);
+    writer.String("lastAlarm"); writer.String(lastAlarm.c_str()); }
   writer.EndObject ();
   resultat = buffer.GetString ();
   buffer.Clear ();
@@ -419,11 +508,18 @@ std::string AutoMode::getScheduleJson() const {
   }
   writer.EndArray();
   writer.Key("comfort"); writer.Double(comfortTemperature);
-  writer.Key("override"); writer.String(presenceOverride == PresenceOverride::arrive ? "arrive" :
-     presenceOverride == PresenceOverride::leave ? "leave" : "none");
   std::time_t now = std::time(nullptr); std::tm local{};
+  const PresenceOverride visibleOverride =
+      (overrideExpiresAt > 0 && now >= overrideExpiresAt) ? PresenceOverride::none : presenceOverride;
+  writer.Key("override"); writer.String(visibleOverride == PresenceOverride::arrive ? "arrive" :
+     visibleOverride == PresenceOverride::leave ? "leave" : "none");
   localtime_r(&now, &local);
   writer.Key("presence"); writer.Bool(isScheduledPresence(local));
+  writer.Key("overrideUntil"); writer.Int64(visibleOverride == PresenceOverride::none ? 0 : static_cast<int64_t>(overrideExpiresAt));
+  writer.Key("effectivePresence"); writer.Bool(visibleOverride == PresenceOverride::arrive ? true :
+      visibleOverride == PresenceOverride::leave ? false : isScheduledPresence(local));
+  writer.Key("autoEnabled"); writer.Bool(currentMode == Mode::normal && !alarmLatched);
+  writer.Key("alarmLatched"); writer.Bool(alarmLatched);
   writer.EndObject();
   return buffer.GetString();
 }
@@ -490,7 +586,7 @@ bool AutoMode::applyScheduleJson(const std::string &json, std::string &error, bo
   std::lock_guard<std::mutex> lock(scheduleMutex);
   if (persist && !saveScheduleToDisk(days,comfort,error)) return false;
   presenceDays=days; comfortTemperature=comfort;
-  presenceOverride=PresenceOverride::none;
+  presenceOverride=PresenceOverride::none; overrideExpiresAt=0; arriveStartPending=false; leaveStopPending=false;
   return true;
 }
 void AutoMode::loadScheduleFromDisk() {
@@ -501,13 +597,101 @@ void AutoMode::loadScheduleFromDisk() {
   if (!applyScheduleJson(contents.str(),error,false))
     NVJ_LOG->append(NVJ_WARNING, "Ignored invalid schedule file: " + error);
 }
+// Recherche la fin d'une plage en cours ou de la prochaine plage, sur 8 jours.
+std::time_t AutoMode::findPeriodEnd(std::time_t now, bool activeOnly) const {
+  std::tm local{}; localtime_r(&now, &local);
+  for (int offset=0; offset<8; ++offset) {
+    std::tm day=local; day.tm_mday += offset; day.tm_hour=12; day.tm_min=0; day.tm_sec=0;
+    std::mktime(&day);
+    const int weekday=(day.tm_wday+6)%7;
+    for (const auto &period: presenceDays[weekday]) {
+      std::tm start=day; start.tm_hour=period.start/60; start.tm_min=period.start%60; start.tm_sec=0;
+      std::tm end=day; end.tm_hour=period.end/60; end.tm_min=period.end%60; end.tm_sec=0;
+      const std::time_t begins=std::mktime(&start), finishes=std::mktime(&end);
+      if (activeOnly ? (begins<=now && now<finishes) : (finishes>now)) return finishes;
+    }
+    if (activeOnly) break;
+  }
+  return 0;
+}
 bool AutoMode::setPresenceOverride(const std::string &value,std::string &error) {
-  if (currentMode != Mode::normal) {error="Auto mode is required";return false;}
-  std::lock_guard<std::mutex> lock(scheduleMutex);
-  if (value == "clear") {presenceOverride=PresenceOverride::none;return true;}
+  if (currentMode != Mode::normal || alarmLatched) {error="Auto mode is required";return false;}
+  if (isAlarmMode(lcdReader->getCurrentOperatingMode())) {error="Alarm active";return false;}
   if (value != "arrive" && value != "leave") {error="Invalid override";return false;}
-  std::time_t now=std::time(nullptr); std::tm local{}; localtime_r(&now,&local);
-  overrideOriginalPresence=isScheduledPresence(local);
-  presenceOverride = value == "arrive" ? PresenceOverride::arrive : PresenceOverride::leave;
+  std::lock_guard<std::mutex> lock(scheduleMutex);
+  const std::time_t now=std::time(nullptr);
+  std::tm local{}; localtime_r(&now,&local);
+  const bool scheduled=isScheduledPresence(local);
+  if (value=="leave") {
+    if (!scheduled && presenceOverride != PresenceOverride::arrive) {error="No active presence period";return false;}
+    // Pendant un retour anticipe, le depart annule la demande de chauffage.
+    if (!scheduled) {
+      presenceOverride=PresenceOverride::none; overrideExpiresAt=0;
+      arriveStartPending=false;
+      leaveStopPending=true;
+      NVJ_LOG->append(NVJ_INFO,"[PRESENCE] Je pars: retour anticipe annule, arret demande");
+      return true;
+    }
+    overrideExpiresAt=findPeriodEnd(now,true);
+    if (!overrideExpiresAt) {error="Cannot determine period end";return false;}
+    presenceOverride=PresenceOverride::leave;
+    arriveStartPending=false;
+    leaveStopPending=true;
+    NVJ_LOG->append(NVJ_INFO,"[PRESENCE] Je pars: arret demande jusqu a la fin de la periode");
+  } else {
+    if (scheduled && presenceOverride != PresenceOverride::leave) {error="Already in scheduled presence";return false;}
+    const std::time_t nextEnd=findPeriodEnd(now,false);
+    overrideExpiresAt=now+4*60*60;
+    if (nextEnd && nextEnd<overrideExpiresAt) overrideExpiresAt=nextEnd;
+    presenceOverride=PresenceOverride::arrive;
+    leaveStopPending=false;
+    arriveStartPending=true;
+    NVJ_LOG->append(NVJ_INFO,"[PRESENCE] Je rentre: demarrage demande, derogation maximum 4h");
+  }
   return true;
+}
+
+// L'alarme est detectee pour tous les codes reconnus par le decodeur LCD.
+bool AutoMode::isAlarmMode(OperatingMode mode) const {
+  return mode == OperatingMode::alertTempFume || mode == OperatingMode::alertTermDepr ||
+         mode == OperatingMode::alertVentFume || mode == OperatingMode::alertUnspecified;
+}
+void AutoMode::saveAlarmState() {
+  std::lock_guard<std::mutex> lock(scheduleMutex);
+  const std::string tmp = alarmStatePath + ".tmp";
+  std::ofstream f(tmp, std::ios::trunc);
+  if (!f) { NVJ_LOG->append(NVJ_ERROR,"[AUTO] Impossible de sauvegarder le verrou d alarme"); return; }
+  f << (alarmLatched ? "1" : "0") << "\n" << lastAlarm << "\n";
+  f.close();
+  if (std::rename(tmp.c_str(),alarmStatePath.c_str()) != 0)
+    NVJ_LOG->append(NVJ_ERROR,"[AUTO] Impossible de remplacer le fichier d etat d alarme");
+}
+void AutoMode::loadAlarmState() {
+  std::ifstream f(alarmStatePath);
+  if (!f) return;
+  std::string state; std::getline(f,state);
+  alarmLatched = state == "1";
+  std::lock_guard<std::mutex> lock(scheduleMutex);
+  std::getline(f,lastAlarm);
+  if (alarmLatched) NVJ_LOG->append(NVJ_WARNING,"[AUTO] Alarme memorisee: regulation desactivee");
+}
+void AutoMode::onAlarm(const std::string &reason) {
+  if (alarmLatched.exchange(true)) return;
+  currentMode = Mode::off;
+  leaveStopPending = false;
+  { std::lock_guard<std::mutex> lock(scheduleMutex);
+    arriveStartPending = false; presenceOverride = PresenceOverride::none; overrideExpiresAt = 0;
+    lastAlarm = reason; }
+  // Ne jamais envoyer STOP/RESET automatiquement sur une alarme.
+  NVJ_LOG->append(NVJ_WARNING,"[POELE] Alarme detectee: " + reason);
+  NVJ_LOG->append(NVJ_WARNING,"[AUTO] Mode automatique desactive; rearmement manuel requis");
+  saveAlarmState();
+}
+void AutoMode::responsiveSleep(unsigned seconds) {
+  for (unsigned i=0; i<seconds && !exiting; ++i) {
+    const OperatingMode mode=lcdReader->getCurrentOperatingMode();
+    if (isAlarmMode(mode)) { onAlarm(lcdReader->getLcdMessage()); return; }
+    if (currentMode == Mode::off || leaveStopPending) return;
+    sleep(1);
+  }
 }
