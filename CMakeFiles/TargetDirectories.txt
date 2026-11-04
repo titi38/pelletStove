@@ -1,3 +1,0 @@
-/home/pi/pelletStove/CMakeFiles/rebuild_cache.dir
-/home/pi/pelletStove/CMakeFiles/edit_cache.dir
-/home/pi/pelletStove/CMakeFiles/pelletStove.dir
