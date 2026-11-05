@@ -44,10 +44,21 @@ ButtonControl::ButtonControl ( LcdReader *l ) : lcdReader (l)
 
 void ButtonControl::initPinMode ()
 {
-  pinMode (static_cast<int>(ControlButtons::on), OUTPUT);
-  pinMode (static_cast<int>(ControlButtons::off), OUTPUT);
-  pinMode (static_cast<int>(ControlButtons::up), OUTPUT);
-  pinMode (static_cast<int>(ControlButtons::down), OUTPUT);
+    const ControlButtons buttons[] = {
+        ControlButtons::on,
+        ControlButtons::off,
+        ControlButtons::up,
+        ControlButtons::down
+    };
+
+    for (const auto button : buttons)
+    {
+        const int pin = static_cast<int>(button);
+
+        digitalWrite(pin, LOW);
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, LOW);
+    }
 }
 
 /***********************************************************************/

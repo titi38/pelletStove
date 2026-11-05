@@ -281,7 +281,7 @@ void LcdReader::loop ()
         char data = readLcdData ();
         if (( nbCls >= 2 && nbChome ) && ( data < 0x20 ))
         {
-          bufText[ posLine ][ posCurr++ ] = 0;
+          bufText[posLine][posCurr] = 0;
           int nbEq = 0;
           for ( int i = 0; i < NB_LINES && nbEq < NB_LINES / 2; i++ )
             if ( strcmp (bufText[ posLine ], bufText[ ( posLine + i ) % NB_LINES ]) == 0 )

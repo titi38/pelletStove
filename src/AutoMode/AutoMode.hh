@@ -58,6 +58,8 @@ class AutoMode
     void onAlarm(const std::string &reason);
     bool isAlarmMode(OperatingMode mode) const;
     std::string getInfoJson () const;
+    // Seul le mode off laisse passer les touches du panneau via HTTP.
+    bool panelCommandsAllowed () const { return currentMode == Mode::off; }
     // Programmation hebdomadaire - lundi=0, dimanche=6
     struct PresencePeriod { int start; int end; }; // minutes depuis 00:00
     std::string getScheduleJson () const;

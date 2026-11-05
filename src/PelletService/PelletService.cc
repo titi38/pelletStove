@@ -264,6 +264,14 @@ bool PelletCommand::PelletCommand::getPage ( HttpRequest *request, HttpResponse 
                   else
                     if ( request->hasParameter ("pressButton"))
                     {
+                      // PANEL_ORIGIN_LOCK_V54 : protection côté HTTP ; AutoMode utilise toujours ButtonControl.
+                      if (!autoMode->panelCommandsAllowed ())
+                      {
+                        errMessage = "Commandes du panneau indisponibles pendant la regulation automatique";
+                        NVJ_LOG->append (NVJ_WARNING, "Panneau d origine: commande refusee, regulation active");
+                      }
+                      else
+                      {
                       ButtonControl::ButtonPressionDuration duration = ButtonControl::ButtonPressionDuration::normal;
                       ButtonControl::ControlButtons buttons[2];
                       size_t nbButton = 0;
@@ -300,6 +308,8 @@ bool PelletCommand::PelletCommand::getPage ( HttpRequest *request, HttpResponse 
                         buttonControl->press2Buttons (buttons[ 0 ], buttons[ 1 ] /*,duration */);
 
                       runSuccess = true;
+                    
+                      }
                     }
                     else
                       if ( request->hasParameter ("auto"))
