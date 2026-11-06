@@ -35,7 +35,14 @@ struct Input {
 struct Decision {
   bool allowed = false;
   Reason reason = Reason::Off;
-  double targetTemperature = 0.0; // only meaningful when allowed
+  double targetTemperature = 0.0;
+
+  Decision() = default;
+
+  Decision(bool allowed_, Reason reason_, double target_)
+    : allowed(allowed_),
+      reason(reason_),
+      targetTemperature(target_) {}
 };
 
 inline void validate(const Config& c) {
