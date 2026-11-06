@@ -11,7 +11,12 @@ enum class Mode { Manual, Automatic, Presence, Absence };
 enum class Override { None, Arrive, Leave };
 enum class Reason { Manual, Scheduled, Anticipation, AutomaticFrost, PresencePeriod, AbsenceFrost, OverrideArrive, OverrideLeave, Off };
 
-struct Period { int startMinute = 0; int endMinute = 0; };
+struct Period {
+  int startMinute = 0;
+  int endMinute = 0;
+  Period() = default;
+  Period(int start, int end) : startMinute(start), endMinute(end) {}
+};
 struct Frost { bool enabled = false; double startBelow = 15.0; double stopAt = 17.0; };
 struct Automatic {
   double comfort = 20.0;
@@ -31,6 +36,10 @@ struct Input {
   int minuteOfDay = 0;
   double indoorTemperature = 20.0; // raw indoor temperature, not weather-adjusted
   bool indoorSensorValid = true;
+  Input() = default;
+  Input(Mode m, Override o, int day, int minute, double temperature, bool valid)
+    : mode(m), override(o), weekday(day), minuteOfDay(minute),
+      indoorTemperature(temperature), indoorSensorValid(valid) {}
 };
 struct Decision {
   bool allowed = false;
