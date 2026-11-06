@@ -40,6 +40,7 @@
 #include "DhtReader.hh"
 #include "LcdReader.hh"
 #include "OpenWeatherClient.hh"
+#include "HeatingPolicy.hh"
 
 using namespace std;
 
@@ -73,6 +74,11 @@ class AutoMode
     void loop ();
 
     mutable std::mutex scheduleMutex;
+    // V5.5 : réglages supplémentaires, lus/écrits via schedule.json.
+    // Le moteur de régulation historique reste actif dans cette étape de migration.
+    pellet_v55::Config v55Config;
+    unsigned long configRevision = 0;
+
     std::array<std::vector<PresencePeriod>, 7> presenceDays;
     double comfortTemperature = 20.0;
     enum class PresenceOverride { none, arrive, leave };
@@ -84,7 +90,7 @@ class AutoMode
     std::string schedulePath;
     bool isScheduledPresence(const std::tm &now) const;
     bool saveScheduleToDisk(const std::array<std::vector<PresencePeriod>, 7> &days,
-        double comfort, std::string &error) const;
+        double comfort, const pellet_v55::Config &cfg, std::string &error) const;
     void loadScheduleFromDisk();
     bool applyScheduleJson(const std::string &json, std::string &error, bool persist);
     static std::string timeString(int minutes);

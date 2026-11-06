@@ -42,15 +42,12 @@ using namespace rapidjson;
 #define OUTDOORTEMPCORR ( openWeatherClient->getTempForecast() - (double)(openWeatherClient->getHumiForecast())/75.0 )
 
 #define TEMP_CONSIGNE 20
-#define TEMP_VERYCOLD 15.0
-#define TEMP_CONSIGNE_ABSENCE  13.0
 
 // DIFF_TEMP_STARTUP: .5 si T entre 10 et 1°C, 1.5 si moins de 1°C
 #define DIFF_TEMP_STARTUP ((OUTDOORTEMPCORR < 1.0) ? 1.0 : 0.5) + ((OUTDOORTEMPCORR < 10.0) ? 0.5 : 0.0)
 #define DIFF_TEMP_SHUTDOWN ((OUTDOORTEMPCORR < 1.0) ? 1.0 : 0.5)
 
 #define DIFF_TEMP_CLEARCAST 1.0
-#define DIFF_TEMP_VERYCOLD 2.5
 
 
 /***********************************************************************/
@@ -109,7 +106,10 @@ void AutoMode::loop ()
 {
   bool shutdownPeriod = false;
   bool needCleaning = false;
-  bool veryColdCondition = false;
+  // Regulateur V5.5 : l'hysteresis est conservee entre les cycles.
+  pellet_v55::Policy policy(pellet_v55::Config{});
+  unsigned long loadedRevision = static_cast<unsigned long>(-1);
+  Mode previousMode = Mode::off;
 
   double tempCorr = .0;
 
@@ -127,6 +127,8 @@ void AutoMode::loop ()
     if (isAlarmMode(observed)) onAlarm(lcdReader->getLcdMessage());
     if (currentMode == Mode::off || alarmLatched)
     {
+      policy.reset();
+      previousMode = Mode::off;
       sleep (1);
       continue;
     }
@@ -197,16 +199,15 @@ nbStrangeTemperature++;
     else
       nbStrangeTemperature=0;
 
-    // Snapshot de la programmation, sans garder le mutex pendant les commandes physiques.
-    bool scheduledPresence = false;
-    bool effectivePresence = false;
+    // Snapshot atomique des parametres, puis decision SANS mutex lors des actions physiques.
     bool forcedArrival = false;
     bool forcedDeparture = false;
     bool overrideExpired = false;
-    double targetTemperature = TEMP_CONSIGNE;
+    unsigned long revision;
+    pellet_v55::Config config;
+    pellet_v55::Override activeOverride = pellet_v55::Override::None;
     {
       std::lock_guard<std::mutex> lock(scheduleMutex);
-      scheduledPresence = isScheduledPresence(*tm_local);
       if (presenceOverride != PresenceOverride::none &&
           (overrideExpiresAt == 0 || time_temp >= overrideExpiresAt)) {
         NVJ_LOG->append(NVJ_INFO, "[PRESENCE] Derogation expiree: retour a la programmation");
@@ -218,35 +219,37 @@ nbStrangeTemperature++;
       }
       forcedArrival = presenceOverride == PresenceOverride::arrive;
       forcedDeparture = presenceOverride == PresenceOverride::leave;
-      effectivePresence = presenceOverride == PresenceOverride::arrive ? true :
-                          presenceOverride == PresenceOverride::leave ? false : scheduledPresence;
-      targetTemperature = currentMode == Mode::normal ?
-          comfortTemperature : TEMP_CONSIGNE;
+      activeOverride = forcedArrival ? pellet_v55::Override::Arrive :
+                       forcedDeparture ? pellet_v55::Override::Leave : pellet_v55::Override::None;
+      config = v55Config;
+      revision = configRevision;
     }
-
-    // En mode Auto, les périodes de présence configurées remplacent les horaires figés.
-    // Les protections du poêle et l'antigel restent traités plus bas.
-    shutdownPeriod = (currentMode == Mode::normal) ?
-                     !effectivePresence :
-                     ((tm_local->tm_hour >= 22 || tm_local->tm_hour < 5)
-                     || (currentMode == Mode::absent && tm_local->tm_hour >= 6 && tm_local->tm_hour < 8));
-
-
-    // shutdownPeriod... but it's cold !!!
-    /*if (!veryColdCondition && shutdownPeriod && operatingMode == OperatingMode::off
-         && currentMode != Mode::absent && ( tempCorr < TEMP_VERYCOLD ) ) // 3°C de moins : rallumage anticipé
-    {
-      veryColdCondition = true;
+    if (revision != loadedRevision) {
+      policy.update(config);
+      loadedRevision = revision;
     }
-
-    if ( !shutdownPeriod ) // only in shutdownPeriod
-      veryColdCondition = false;*/
-
-    veryColdCondition = tempCorr < TEMP_VERYCOLD;
-
-    // A expiration d'un retour anticipe, hors programmation, l'arret ne
-    // doit pas attendre les 90 minutes. L'antigel garde sa priorite.
-    if (overrideExpired && !effectivePresence && !veryColdCondition && operatingMode == OperatingMode::on) {
+    const Mode modeSnapshot = currentMode.load();
+    if (modeSnapshot != previousMode) {
+      policy.reset();
+      previousMode = modeSnapshot;
+    }
+    const pellet_v55::Mode policyMode = modeSnapshot == Mode::normal ? pellet_v55::Mode::Automatic :
+        modeSnapshot == Mode::vacation ? pellet_v55::Mode::Presence :
+        modeSnapshot == Mode::absent ? pellet_v55::Mode::Absence : pellet_v55::Mode::Manual;
+    const pellet_v55::Input decisionInput{policyMode, activeOverride,
+        (tm_local->tm_wday + 6) % 7, tm_local->tm_hour * 60 + tm_local->tm_min, temp, true};
+    const pellet_v55::Decision decision = policy.decide(decisionInput);
+    shutdownPeriod = !decision.allowed;
+    const double targetTemperature = decision.targetTemperature;
+    // Un retour anticipe autorise la chauffe, mais ne contourne ni thermostat
+    // ni temporisation de refroidissement.
+    if (arriveStartPending && (operatingMode == OperatingMode::on || !forcedArrival))
+      arriveStartPending = false;
+    // Un depart explicite suspend la chauffe, sauf si la protection grand froid
+    // doit reprendre la main. Le redemarrage reste soumis au delai de 90 min.
+    if (forcedDeparture && decision.reason == pellet_v55::Reason::AutomaticFrost &&
+        operatingMode == OperatingMode::off) leaveStopPending = false;
+    if (overrideExpired && shutdownPeriod && operatingMode == OperatingMode::on) {
       leaveStopPending = true;
       NVJ_LOG->append(NVJ_INFO, "[PRESENCE] Fin de derogation: arret normal demande");
     }
@@ -256,19 +259,6 @@ nbStrangeTemperature++;
       leaveStopPending = false;
       NVJ_LOG->append(NVJ_INFO,"[PRESENCE] Arret confirme par le LCD");
     }
-    if (arriveStartPending && forcedArrival && operatingMode == OperatingMode::off && !alarmLatched && currentMode == Mode::normal) {
-      if (isAlarmMode(lcdReader->getCurrentOperatingMode())) { onAlarm(lcdReader->getLcdMessage()); continue; }
-      arriveStartPending = false;
-      NVJ_LOG->append(NVJ_INFO, "[PRESENCE] Retour anticipe: commande de demarrage envoyee");
-      buttonControl->start();
-      startTime = std::chrono::system_clock::now();
-      responsiveSleep(20 * 60);
-      continue;
-    }
-    if (arriveStartPending && operatingMode == OperatingMode::on) {
-      arriveStartPending = false;
-      NVJ_LOG->append(NVJ_INFO,"[PRESENCE] Demarrage confirme par le LCD");
-    }
     // Une demande de depart prime sur les 90 minutes et sur la temperature.
     // Elle est conservee tant que le LCD ne confirme pas OFF.
     if (leaveStopPending && operatingMode != OperatingMode::on && operatingMode != OperatingMode::off) {
@@ -276,116 +266,62 @@ nbStrangeTemperature++;
       continue;
     }
 
-    // if the pellet is running...
-    if ( operatingMode == OperatingMode::on )
-    {
-      // if the temp/hygro has been reached
-      if (!forcedArrival &&
-          ((currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE)
-           || tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN
-           || (tm_local->tm_hour >= (9 + ((tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1) ? 2 : 0))
-               && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast()
-               && tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN - DIFF_TEMP_CLEARCAST)
-           || (shutdownPeriod && !veryColdCondition))
-          && std::chrono::duration_cast<std::chrono::minutes>(
-               std::chrono::system_clock::now() - startTime).count() >= 90)
-      {
-
-	bool expr1 = (currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE);
-	bool expr2 = (tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN);
-	bool expr3 = (tm_local->tm_hour >= (9 + ((tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1) ? 2 : 0)) &&
-		                  tm_local->tm_hour < 17 && openWeatherClient->isClearForcast() &&
-	                    tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN - DIFF_TEMP_CLEARCAST);
-	bool expr4 = (shutdownPeriod && !veryColdCondition);
-	bool expr5 = (veryColdCondition && tempCorr >= targetTemperature - DIFF_TEMP_VERYCOLD);
-
-      	std::ostringstream debugOutput;
-	debugOutput << std::boolalpha; // Afficher les booléens comme "true" ou "false"
-
-	// Ajouter les valeurs des expressions
-	debugOutput << "(currentMode == Mode::absent && tempCorr > TEMP_CONSIGNE_ABSENCE): " << expr1 << "\n";
-	debugOutput << "(tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN): " << expr2 << "\n";
-	debugOutput << "(tm_local->tm_hour >= (9 + (tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1) ? 2 : 0) "
-	       << "&& tm_local->tm_hour < 17 && openWeatherClient->isClearForcast() "
-	       << "&& tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN - DIFF_TEMP_CLEARCAST): " << expr3 << "\n";
-	debugOutput << "(shutdownPeriod && !veryColdCondition): " << expr4 << "\n";
-	debugOutput << "(veryColdCondition && tempCorr >= targetTemperature - DIFF_TEMP_VERYCOLD): " << expr5 << "\n";
-	// Ajouter la date et l'heure
-	debugOutput << "Date: " << std::put_time(tm_local, "%Y-%m-%d %H:%M:%S") << "\n";
-	
-        NVJ_LOG->append (NVJ_INFO,
-                         "Stop Cond: shutdownPeriod=" + to_string (shutdownPeriod) + ", tempCorr=" + to_string (tempCorr) + ", temp=" + to_string (temp)
-                         + ", humi=" + to_string (humi) + ", forecast="
-                         + to_string (openWeatherClient->isClearForcast ()) + ", currentMode="
-                         + to_string (static_cast<int>(currentMode.load())) + ", veryColdCondition="
-                         + to_string (veryColdCondition) + "DEBUG: " + debugOutput.str());
+    // La regulation est distincte de l'autorisation : si la plage est fermee,
+    // l'arret est demande meme si une temperature de confort reste configuree.
+    if (operatingMode == OperatingMode::on) {
+      const bool targetReached = decision.allowed && tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN;
+      const bool shouldStop = shutdownPeriod || targetReached;
+      if (shouldStop && (shutdownPeriod || std::chrono::duration_cast<std::chrono::minutes>(
+          std::chrono::system_clock::now() - startTime).count() >= 90)) {
+        NVJ_LOG->append(NVJ_INFO,
+          "[V5.5] Stop: autorise=" + to_string(decision.allowed) +
+          ", temperature=" + to_string(temp) + ", corrigee=" + to_string(tempCorr) +
+          ", consigne=" + to_string(targetTemperature));
         if (isAlarmMode(lcdReader->getCurrentOperatingMode()) || alarmLatched || currentMode == Mode::off) {
           if (isAlarmMode(lcdReader->getCurrentOperatingMode())) onAlarm(lcdReader->getLcdMessage());
           continue;
         }
-        buttonControl->stop ();
-        stopTime = std::chrono::system_clock::now ();
-//        veryColdCondition = false;
+        buttonControl->stop();
+        stopTime = std::chrono::system_clock::now();
         needCleaning = true;
-        responsiveSleep (60 * 60); // 1h
+        responsiveSleep(60 * 60);
         continue;
       }
-      // else
-      short deltaPower = 0;
-
-      //if ( currentMode == Mode::absent || ( veryColdCondition && !shutdownPeriod ))
-      if ( currentMode == Mode::absent )
-        deltaPower = (veryColdCondition ? 2:1) - lcdReader->getPower ();
-      else
-        deltaPower = std::min (6, ( short ) ( targetTemperature - tempCorr ) + 1) - lcdReader->getPower ();
-
-      if ( deltaPower != 0 )
-      {
-        buttonControl->incPower (deltaPower);
-        NVJ_LOG->append (NVJ_INFO,
-                         "incPower(" + to_string (deltaPower) + "), tempCorr=" + to_string (tempCorr) + ", temp="
-                         + to_string (temp) + ", humi=" + to_string (humi));
+      // Ne jamais monter la puissance lorsque le chauffage n'est plus autorise.
+      if (decision.allowed) {
+        const short desiredPower = static_cast<short>(std::max(1, std::min(6,
+              static_cast<int>(targetTemperature - tempCorr) + 1)));
+        const short deltaPower = desiredPower - lcdReader->getPower();
+        if (deltaPower != 0) {
+          buttonControl->incPower(deltaPower);
+          NVJ_LOG->append(NVJ_INFO, "[V5.5] incPower(" + to_string(deltaPower) + ")");
+        }
       }
-      responsiveSleep (60); // 1mn
+      responsiveSleep(60);
       continue;
     }
-
-    // if the pellet is stopped: startCond ?
-    if (!alarmLatched && currentMode != Mode::off && ( operatingMode == OperatingMode::off )
-        && !forcedDeparture && !leaveStopPending
-
-	&& 
-	(( !shutdownPeriod
-
-          && (   ( currentMode == Mode::absent && tempCorr < TEMP_CONSIGNE_ABSENCE - DIFF_TEMP_STARTUP )
-          || ( currentMode != Mode::absent && tempCorr < targetTemperature - DIFF_TEMP_STARTUP ) )
-
-	  // Si on est entre 9h (ou 11h) et 17h, qu'il fait beau et pas suffisamment froid. On ne démarre pas !
-          && !( tm_local->tm_hour >= (9 + ((tm_local->tm_mon >= 10 || tm_local->tm_mon <= 1) ? 2 : 0))
-              && tm_local->tm_hour < 17 && openWeatherClient->isClearForcast ()
-              && tempCorr >= targetTemperature - DIFF_TEMP_CLEARCAST - DIFF_TEMP_STARTUP )
-
-	  // On ne démarre pas si on est à moins de 1h30 du précédent arrêt
-          && ( std::chrono::duration_cast<std::chrono::minutes> (std::chrono::system_clock::now () - stopTime).count ()
-             >= 90 )
-
-	  // On démarre plus après 21h30.
-          && (currentMode == Mode::normal || !(tm_local->tm_hour == 21 && tm_local->tm_min >= 30)))
-		
-	||  (veryColdCondition && !forcedDeparture) ))
-    {
-      NVJ_LOG->append (NVJ_INFO,
-                       "Start Cond: tempCorr=" + to_string (tempCorr) + ", temp=" + to_string (temp) + ", humi="
-                       + to_string (humi) + ", forecast=" + to_string (openWeatherClient->isClearForcast ())
-                       + ", currentMode=" + to_string (static_cast<int>(currentMode.load())) + ", veryColdCondition="
-                       + to_string (veryColdCondition));
+    // Toutes les demandes de demarrage (planning, anticipation, grand froid,
+    // retour anticipe) partagent les memes verifications de securite.
+    if (decision.allowed && operatingMode == OperatingMode::off &&
+        !alarmLatched && currentMode != Mode::off &&
+        (!forcedDeparture || decision.reason == pellet_v55::Reason::AutomaticFrost) &&
+        !leaveStopPending &&
+        tempCorr < targetTemperature - DIFF_TEMP_STARTUP &&
+        std::chrono::duration_cast<std::chrono::minutes>(
+          std::chrono::system_clock::now() - stopTime).count() >= 90) {
+      NVJ_LOG->append(NVJ_INFO,
+         "[V5.5] Start: temperature=" + to_string(temp) +
+         ", corrigee=" + to_string(tempCorr) +
+         ", consigne=" + to_string(targetTemperature) +
+         ", raison=" + to_string(static_cast<int>(decision.reason)));
       if (isAlarmMode(lcdReader->getCurrentOperatingMode()) || alarmLatched || currentMode == Mode::off) {
         if (isAlarmMode(lcdReader->getCurrentOperatingMode())) onAlarm(lcdReader->getLcdMessage());
         continue;
       }
-      buttonControl->start ();
-      startTime = std::chrono::system_clock::now ();
-      responsiveSleep (20 * 60); // 20mn
+      buttonControl->start();
+      arriveStartPending = false;
+      startTime = std::chrono::system_clock::now();
+      responsiveSleep(20 * 60);
       continue;
     }
     sleep(1); // éviter une boucle CPU intensive quand aucune action n’est nécessaire
@@ -508,6 +444,27 @@ std::string AutoMode::getScheduleJson() const {
   }
   writer.EndArray();
   writer.Key("comfort"); writer.Double(comfortTemperature);
+  // Options V5.5 : les anciens champs days/comfort restent compatibles.
+  writer.Key("anticipation"); writer.StartObject();
+  writer.Key("enabled"); writer.Bool(v55Config.automatic.anticipationEnabled);
+  writer.Key("below"); writer.Double(v55Config.automatic.anticipationBelow);
+  writer.Key("minutes"); writer.Int(v55Config.automatic.anticipationMinutes);
+  writer.EndObject();
+  const auto writeFrost = [&writer](const pellet_v55::Frost &f) {
+    writer.StartObject();
+    writer.Key("enabled"); writer.Bool(f.enabled);
+    writer.Key("startBelow"); writer.Double(f.startBelow);
+    writer.Key("stopAt"); writer.Double(f.stopAt);
+    writer.EndObject();
+  };
+  writer.Key("automaticFrost"); writeFrost(v55Config.automatic.frost);
+  writer.Key("presenceMode"); writer.StartObject();
+  writer.Key("start"); writer.String(timeString(v55Config.presence.startMinute).c_str());
+  writer.Key("end"); writer.String(timeString(v55Config.presence.endMinute).c_str());
+  writer.Key("comfort"); writer.Double(v55Config.presence.comfort);
+  writer.EndObject();
+  writer.Key("absenceFrost"); writeFrost(v55Config.absenceFrost);
+
   std::time_t now = std::time(nullptr); std::tm local{};
   const PresenceOverride visibleOverride =
       (overrideExpiresAt > 0 && now >= overrideExpiresAt) ? PresenceOverride::none : presenceOverride;
@@ -524,7 +481,7 @@ std::string AutoMode::getScheduleJson() const {
   return buffer.GetString();
 }
 bool AutoMode::saveScheduleToDisk(const std::array<std::vector<PresencePeriod>, 7> &days,
-  double comfort, std::string &error) const {
+  double comfort, const pellet_v55::Config &cfg, std::string &error) const {
   GenericStringBuffer<UTF8<>> buffer;
   Writer<GenericStringBuffer<UTF8<>>> writer(buffer);
   writer.StartObject(); writer.Key("days"); writer.StartArray();
@@ -537,6 +494,25 @@ bool AutoMode::saveScheduleToDisk(const std::array<std::vector<PresencePeriod>, 
     writer.EndArray();
   }
   writer.EndArray(); writer.Key("comfort"); writer.Double(comfort);
+  writer.Key("anticipation"); writer.StartObject();
+  writer.Key("enabled"); writer.Bool(cfg.automatic.anticipationEnabled);
+  writer.Key("below"); writer.Double(cfg.automatic.anticipationBelow);
+  writer.Key("minutes"); writer.Int(cfg.automatic.anticipationMinutes);
+  writer.EndObject();
+  const auto writeFrost = [&writer](const pellet_v55::Frost &f) {
+    writer.StartObject();
+    writer.Key("enabled"); writer.Bool(f.enabled);
+    writer.Key("startBelow"); writer.Double(f.startBelow);
+    writer.Key("stopAt"); writer.Double(f.stopAt);
+    writer.EndObject();
+  };
+  writer.Key("automaticFrost"); writeFrost(cfg.automatic.frost);
+  writer.Key("presenceMode"); writer.StartObject();
+  writer.Key("start"); writer.String(timeString(cfg.presence.startMinute).c_str());
+  writer.Key("end"); writer.String(timeString(cfg.presence.endMinute).c_str());
+  writer.Key("comfort"); writer.Double(cfg.presence.comfort);
+  writer.EndObject();
+  writer.Key("absenceFrost"); writeFrost(cfg.absenceFrost);
   writer.EndObject();
   const std::string tmp = schedulePath + ".tmp";
   {
@@ -584,8 +560,58 @@ bool AutoMode::applyScheduleJson(const std::string &json, std::string &error, bo
     }
   }
   std::lock_guard<std::mutex> lock(scheduleMutex);
-  if (persist && !saveScheduleToDisk(days,comfort,error)) return false;
-  presenceDays=days; comfortTemperature=comfort;
+  pellet_v55::Config cfg = v55Config;
+  cfg.automatic.days = {};
+  cfg.automatic.comfort = comfort;
+  for (size_t d=0; d<7; ++d)
+    for (const auto &period : days[d])
+      cfg.automatic.days[d].push_back({period.start, period.end});
+  // Champs V5.5 optionnels : une ancienne version du frontend peut toujours
+  // sauvegarder days/comfort sans écraser les autres paramètres.
+  if (document.HasMember("anticipation")) {
+    const auto &a = document["anticipation"];
+    if (!a.IsObject() || !a.HasMember("enabled") || !a["enabled"].IsBool() ||
+        !a.HasMember("below") || !a["below"].IsNumber() ||
+        !a.HasMember("minutes") || !a["minutes"].IsInt()) {
+      error="Invalid anticipation"; return false;
+    }
+    cfg.automatic.anticipationEnabled=a["enabled"].GetBool();
+    cfg.automatic.anticipationBelow=a["below"].GetDouble();
+    cfg.automatic.anticipationMinutes=a["minutes"].GetInt();
+  }
+  const auto readFrost = [&error](const rapidjson::Value &v, pellet_v55::Frost &f) {
+    if (!v.IsObject() || !v.HasMember("enabled") || !v["enabled"].IsBool() ||
+        !v.HasMember("startBelow") || !v["startBelow"].IsNumber() ||
+        !v.HasMember("stopAt") || !v["stopAt"].IsNumber()) {
+      error="Invalid frost settings"; return false;
+    }
+    f.enabled=v["enabled"].GetBool();
+    f.startBelow=v["startBelow"].GetDouble();
+    f.stopAt=v["stopAt"].GetDouble();
+    return true;
+  };
+  if (document.HasMember("automaticFrost") &&
+      !readFrost(document["automaticFrost"], cfg.automatic.frost)) return false;
+  if (document.HasMember("absenceFrost") &&
+      !readFrost(document["absenceFrost"], cfg.absenceFrost)) return false;
+  if (document.HasMember("presenceMode")) {
+    const auto &v=document["presenceMode"];
+    if (!v.IsObject() || !v.HasMember("start") || !v["start"].IsString() ||
+        !v.HasMember("end") || !v["end"].IsString() ||
+        !v.HasMember("comfort") || !v["comfort"].IsNumber()) {
+      error="Invalid presence settings";return false;
+    }
+    if (!parseTime(v["start"].GetString(),cfg.presence.startMinute) ||
+        !parseTime(v["end"].GetString(),cfg.presence.endMinute)) {
+      error="Invalid presence hours";return false;
+    }
+    cfg.presence.comfort=v["comfort"].GetDouble();
+  }
+  try { pellet_v55::validate(cfg); }
+  catch (const std::exception &ex) { error=ex.what(); return false; }
+  if (persist && !saveScheduleToDisk(days,comfort,cfg,error)) return false;
+  presenceDays=days; comfortTemperature=comfort; v55Config=std::move(cfg);
+  ++configRevision;
   presenceOverride=PresenceOverride::none; overrideExpiresAt=0; arriveStartPending=false; leaveStopPending=false;
   return true;
 }
