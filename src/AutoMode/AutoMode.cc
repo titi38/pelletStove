@@ -44,7 +44,9 @@ using namespace rapidjson;
 #define TEMP_CONSIGNE 20
 
 // DIFF_TEMP_STARTUP: .5 si T entre 10 et 1°C, 1.5 si moins de 1°C
-#define DIFF_TEMP_STARTUP ((OUTDOORTEMPCORR < 1.0) ? 1.0 : 0.5) + ((OUTDOORTEMPCORR < 10.0) ? 0.5 : 0.0)
+// Demarrage confort: hysteresis fixe, independante de la meteo.
+constexpr double COMFORT_START_HYSTERESIS = 0.5;
+constexpr std::time_t MIN_REMAINING_COMFORT_SECONDS = 90 * 60;
 #define DIFF_TEMP_SHUTDOWN ((OUTDOORTEMPCORR < 1.0) ? 1.0 : 0.5)
 
 #define DIFF_TEMP_CLEARCAST 1.0
@@ -269,14 +271,20 @@ nbStrangeTemperature++;
     // La regulation est distincte de l'autorisation : si la plage est fermee,
     // l'arret est demande meme si une temperature de confort reste configuree.
     if (operatingMode == OperatingMode::on) {
-      const bool targetReached = decision.allowed && tempCorr >= targetTemperature + DIFF_TEMP_SHUTDOWN;
+      const bool comfortAuto = modeSnapshot == Mode::normal &&
+          decision.reason != pellet_v55::Reason::AutomaticFrost;
+      const double stopThreshold = targetTemperature +
+          (comfortAuto ? 0.0 : DIFF_TEMP_SHUTDOWN);
+      const bool targetReached = decision.allowed && tempCorr >= stopThreshold;
       const bool shouldStop = shutdownPeriod || targetReached;
       if (shouldStop && (shutdownPeriod || std::chrono::duration_cast<std::chrono::minutes>(
           std::chrono::system_clock::now() - startTime).count() >= 90)) {
         NVJ_LOG->append(NVJ_INFO,
           "[V5.5] Stop: autorise=" + to_string(decision.allowed) +
           ", temperature=" + to_string(temp) + ", corrigee=" + to_string(tempCorr) +
-          ", consigne=" + to_string(targetTemperature));
+          ", consigne=" + to_string(targetTemperature) +
+          ", seuil_arret=" + to_string(stopThreshold) +
+          ", raison=" + to_string(static_cast<int>(decision.reason)));
         if (isAlarmMode(lcdReader->getCurrentOperatingMode()) || alarmLatched || currentMode == Mode::off) {
           if (isAlarmMode(lcdReader->getCurrentOperatingMode())) onAlarm(lcdReader->getLcdMessage());
           continue;
@@ -300,19 +308,41 @@ nbStrangeTemperature++;
       responsiveSleep(60);
       continue;
     }
-    // Toutes les demandes de demarrage (planning, anticipation, grand froid,
-    // retour anticipe) partagent les memes verifications de securite.
+    // Hysteresis de confort fixe. L'antigel conserve son comportement de regulation.
+    const bool comfortAuto = modeSnapshot == Mode::normal &&
+        decision.reason != pellet_v55::Reason::AutomaticFrost;
+    const double startThreshold = targetTemperature -
+        (comfortAuto ? COMFORT_START_HYSTERESIS :
+         (((OUTDOORTEMPCORR < 1.0) ? 1.0 : 0.5) +
+          ((OUTDOORTEMPCORR < 10.0) ? 0.5 : 0.0)));
+
+    // Aucune nouvelle chauffe de confort pendant les 90 dernieres minutes
+    // d'une plage active. Calcul sous le verrou du planning pour eviter une
+    // lecture concurrente de presenceDays pendant l'enregistrement.
+    std::time_t periodEnd = 0;
+    if (comfortAuto && activeOverride == pellet_v55::Override::None) {
+      std::lock_guard<std::mutex> lock(scheduleMutex);
+      periodEnd = findPeriodEnd(time_temp, true);
+    }
+    const long remainingSeconds = periodEnd > 0 ?
+        static_cast<long>(periodEnd - time_temp) : -1;
+    const bool enoughTimeRemaining =
+        periodEnd == 0 || remainingSeconds >= MIN_REMAINING_COMFORT_SECONDS;
+
+    // Toutes les demandes de demarrage partagent les memes securites.
     if (decision.allowed && operatingMode == OperatingMode::off &&
         !alarmLatched && currentMode != Mode::off &&
         (!forcedDeparture || decision.reason == pellet_v55::Reason::AutomaticFrost) &&
         !leaveStopPending &&
-        tempCorr < targetTemperature - DIFF_TEMP_STARTUP &&
+        tempCorr <= startThreshold && enoughTimeRemaining &&
         std::chrono::duration_cast<std::chrono::minutes>(
           std::chrono::system_clock::now() - stopTime).count() >= 90) {
       NVJ_LOG->append(NVJ_INFO,
          "[V5.5] Start: temperature=" + to_string(temp) +
          ", corrigee=" + to_string(tempCorr) +
          ", consigne=" + to_string(targetTemperature) +
+         ", seuil_demarrage=" + to_string(startThreshold) +
+         ", secondes_avant_fin=" + to_string(remainingSeconds) +
          ", raison=" + to_string(static_cast<int>(decision.reason)));
       if (isAlarmMode(lcdReader->getCurrentOperatingMode()) || alarmLatched || currentMode == Mode::off) {
         if (isAlarmMode(lcdReader->getCurrentOperatingMode())) onAlarm(lcdReader->getLcdMessage());

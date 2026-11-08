@@ -138,6 +138,8 @@ int main ()
 
 /***********************************************************************/
 
+#include "PelletVersion.hh"
+
 bool PelletInfoMonitor::PelletInfoMonitor::getPage ( HttpRequest *request, HttpResponse *response )
 {
   std::string json = "{ \"indoorData\" : " + dhtReader->getInfoJson () + ",";
@@ -146,6 +148,7 @@ bool PelletInfoMonitor::PelletInfoMonitor::getPage ( HttpRequest *request, HttpR
 
   json += "\"outdoorData\" : " + openWeatherClient->getInfoJson () + ",";
   json += "\"autoMode\" : " + autoMode->getInfoJson ();
+  json += ",\"backendVersion\":\"" PELLET_BACKEND_VERSION "\"";
   json += " }";
   response->setCORS (/*true, false, "http://192."*/);
   return fromString (json, response);
