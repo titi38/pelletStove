@@ -137,9 +137,6 @@ int main ()
 }
 
 /***********************************************************************/
-
-#include "PelletVersion.hh"
-
 bool PelletInfoMonitor::PelletInfoMonitor::getPage ( HttpRequest *request, HttpResponse *response )
 {
   std::string json = "{ \"indoorData\" : " + dhtReader->getInfoJson () + ",";
