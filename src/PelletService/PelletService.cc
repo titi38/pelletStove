@@ -127,6 +127,10 @@ int main ()
   PelletService service;
   webServer->addRepository (&service);
 
+  // Une seule entree par demarrage, visible via le logger applicatif (/logs.json).
+  NVJ_LOG->append (NVJ_INFO, std::string("PelletStove backend v")
+                   + PELLET_BACKEND_VERSION + " starting");
+
   webServer->startService ();
 
   webServer->wait ();

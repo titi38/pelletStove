@@ -8,8 +8,7 @@ cmake_minimum_required(VERSION 2.6)
 
 ####################         Project name           ###########################
 project(PELLET)
-
-set(PELLET_BACKEND_VERSION "5.6.4")
+set(PELLET_BACKEND_VERSION "5.6.5")
 # Version unique du backend, utilisee dans les logs C++
 add_definitions(-DPELLET_BACKEND_VERSION=\"${PELLET_BACKEND_VERSION}\")
 
