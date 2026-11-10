@@ -280,7 +280,7 @@ nbStrangeTemperature++;
       if (shouldStop && (shutdownPeriod || std::chrono::duration_cast<std::chrono::minutes>(
           std::chrono::system_clock::now() - startTime).count() >= 90)) {
         NVJ_LOG->append(NVJ_INFO,
-          "[V5.5] Stop: autorise=" + to_string(decision.allowed) +
+          "Stop: autorise=" + to_string(decision.allowed) +
           ", temperature=" + to_string(temp) + ", corrigee=" + to_string(tempCorr) +
           ", consigne=" + to_string(targetTemperature) +
           ", seuil_arret=" + to_string(stopThreshold) +
@@ -302,7 +302,7 @@ nbStrangeTemperature++;
         const short deltaPower = desiredPower - lcdReader->getPower();
         if (deltaPower != 0) {
           buttonControl->incPower(deltaPower);
-          NVJ_LOG->append(NVJ_INFO, "[V5.5] incPower(" + to_string(deltaPower) + ")");
+          NVJ_LOG->append(NVJ_INFO, "incPower(" + to_string(deltaPower) + ")");
         }
       }
       responsiveSleep(60);
@@ -338,7 +338,7 @@ nbStrangeTemperature++;
         std::chrono::duration_cast<std::chrono::minutes>(
           std::chrono::system_clock::now() - stopTime).count() >= 90) {
       NVJ_LOG->append(NVJ_INFO,
-         "[V5.5] Start: temperature=" + to_string(temp) +
+         "Start: temperature=" + to_string(temp) +
          ", corrigee=" + to_string(tempCorr) +
          ", consigne=" + to_string(targetTemperature) +
          ", seuil_demarrage=" + to_string(startThreshold) +

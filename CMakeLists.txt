@@ -65,6 +65,9 @@ include_directories (${OPENSSL_INCLUDE_DIR})
 
 find_package(ZLIB REQUIRED)
 
+# Client HTTPS WeatherAPI (libcurl)
+find_package(CURL REQUIRED)
+
 find_package(wiringPi REQUIRED)
 include_directories(${WIRINGPI_INCLUDE_DIRS})
 
@@ -112,6 +115,7 @@ set_source_files_properties(${LIBNAVAJO_precompiledFile}
 add_executable( pelletStove ${LIBNAVAJO_precompiledFile} ${sources_cpp} )
 
 target_link_libraries(pelletStove ${OPENSSL_LIBRARIES})
+target_link_libraries(pelletStove CURL::libcurl)
 target_link_libraries(pelletStove ${LIBNAVAJO_LIBRARIES})
 #target_link_libraries(pelletStove ${PostgreSQL_LIBRARIES})
 target_link_libraries(pelletStove ${ZLIB_LIBRARIES})

@@ -33,10 +33,6 @@ using namespace std;
 
 #include <stdio.h>
 #include <strings.h>
-#include <openssl/x509v3.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
 
 #include <iomanip>
 #include <sstream>
@@ -59,18 +55,6 @@ using namespace std;
 class OpenWeatherClient /**< LocalFlowEntry datatype definition */
 {
     static OpenWeatherClient *theOpenWeatherClient;
-    static const unsigned char ca_gz[];
-    BIO *sbio;
-    SSL_CTX *ssl_ctx;
-    SSL *ssl;
-    X509 *server_cert;
-    bool connected = false;
-
-    bool matches_common_name ( const char *hostname, const X509 *server_cert );
-    bool validate_hostname ( const char *hostname, const X509 *server_cert );
-    void free_ssl ();
-    char *send_http_query ( const string &hostname, const string &query );
-
     mutable mutex mutex_values;
     thread *thread_loop = nullptr;
     volatile bool exiting = false;
@@ -112,8 +96,6 @@ class OpenWeatherClient /**< LocalFlowEntry datatype definition */
 
     char *send_get_http_query ( const string &hostname, const string &url, const string &param );
     char *send_post_http_query ( const string &hostname, const string &url, const string &param );
-    void connect ( const string &hostname, const unsigned short port );
-    void disconnect ();
 
     class httpParam
     {
