@@ -109,7 +109,7 @@ void AutoMode::loop ()
   bool shutdownPeriod = false;
   bool needCleaning = false;
   // Regulateur V5.5 : l'hysteresis est conservee entre les cycles.
-  pellet_v55::Policy policy(pellet_v55::Config{});
+  pellet_policy::Policy policy(pellet_policy::Config{});
   unsigned long loadedRevision = static_cast<unsigned long>(-1);
   Mode previousMode = Mode::off;
 
@@ -206,8 +206,8 @@ nbStrangeTemperature++;
     bool forcedDeparture = false;
     bool overrideExpired = false;
     unsigned long revision;
-    pellet_v55::Config config;
-    pellet_v55::Override activeOverride = pellet_v55::Override::None;
+    pellet_policy::Config config;
+    pellet_policy::Override activeOverride = pellet_policy::Override::None;
     {
       std::lock_guard<std::mutex> lock(scheduleMutex);
       if (presenceOverride != PresenceOverride::none &&
@@ -221,9 +221,9 @@ nbStrangeTemperature++;
       }
       forcedArrival = presenceOverride == PresenceOverride::arrive;
       forcedDeparture = presenceOverride == PresenceOverride::leave;
-      activeOverride = forcedArrival ? pellet_v55::Override::Arrive :
-                       forcedDeparture ? pellet_v55::Override::Leave : pellet_v55::Override::None;
-      config = v55Config;
+      activeOverride = forcedArrival ? pellet_policy::Override::Arrive :
+                       forcedDeparture ? pellet_policy::Override::Leave : pellet_policy::Override::None;
+      config = policyConfig;
       revision = configRevision;
     }
     if (revision != loadedRevision) {
@@ -235,12 +235,12 @@ nbStrangeTemperature++;
       policy.reset();
       previousMode = modeSnapshot;
     }
-    const pellet_v55::Mode policyMode = modeSnapshot == Mode::normal ? pellet_v55::Mode::Automatic :
-        modeSnapshot == Mode::vacation ? pellet_v55::Mode::Presence :
-        modeSnapshot == Mode::absent ? pellet_v55::Mode::Absence : pellet_v55::Mode::Manual;
-    const pellet_v55::Input decisionInput{policyMode, activeOverride,
+    const pellet_policy::Mode policyMode = modeSnapshot == Mode::normal ? pellet_policy::Mode::Automatic :
+        modeSnapshot == Mode::vacation ? pellet_policy::Mode::Presence :
+        modeSnapshot == Mode::absent ? pellet_policy::Mode::Absence : pellet_policy::Mode::Manual;
+    const pellet_policy::Input decisionInput{policyMode, activeOverride,
         (tm_local->tm_wday + 6) % 7, tm_local->tm_hour * 60 + tm_local->tm_min, temp, true};
-    const pellet_v55::Decision decision = policy.decide(decisionInput);
+    const pellet_policy::Decision decision = policy.decide(decisionInput);
     shutdownPeriod = !decision.allowed;
     const double targetTemperature = decision.targetTemperature;
     // Un retour anticipe autorise la chauffe, mais ne contourne ni thermostat
@@ -249,7 +249,7 @@ nbStrangeTemperature++;
       arriveStartPending = false;
     // Un depart explicite suspend la chauffe, sauf si la protection grand froid
     // doit reprendre la main. Le redemarrage reste soumis au delai de 90 min.
-    if (forcedDeparture && decision.reason == pellet_v55::Reason::AutomaticFrost &&
+    if (forcedDeparture && decision.reason == pellet_policy::Reason::AutomaticFrost &&
         operatingMode == OperatingMode::off) leaveStopPending = false;
     if (overrideExpired && shutdownPeriod && operatingMode == OperatingMode::on) {
       leaveStopPending = true;
@@ -272,7 +272,7 @@ nbStrangeTemperature++;
     // l'arret est demande meme si une temperature de confort reste configuree.
     if (operatingMode == OperatingMode::on) {
       const bool comfortAuto = modeSnapshot == Mode::normal &&
-          decision.reason != pellet_v55::Reason::AutomaticFrost;
+          decision.reason != pellet_policy::Reason::AutomaticFrost;
       const double stopThreshold = targetTemperature +
           (comfortAuto ? 0.0 : DIFF_TEMP_SHUTDOWN);
       const bool targetReached = decision.allowed && tempCorr >= stopThreshold;
@@ -310,7 +310,7 @@ nbStrangeTemperature++;
     }
     // Hysteresis de confort fixe. L'antigel conserve son comportement de regulation.
     const bool comfortAuto = modeSnapshot == Mode::normal &&
-        decision.reason != pellet_v55::Reason::AutomaticFrost;
+        decision.reason != pellet_policy::Reason::AutomaticFrost;
     const double startThreshold = targetTemperature -
         (comfortAuto ? COMFORT_START_HYSTERESIS :
          (((OUTDOORTEMPCORR < 1.0) ? 1.0 : 0.5) +
@@ -320,7 +320,7 @@ nbStrangeTemperature++;
     // d'une plage active. Calcul sous le verrou du planning pour eviter une
     // lecture concurrente de presenceDays pendant l'enregistrement.
     std::time_t periodEnd = 0;
-    if (comfortAuto && activeOverride == pellet_v55::Override::None) {
+    if (comfortAuto && activeOverride == pellet_policy::Override::None) {
       std::lock_guard<std::mutex> lock(scheduleMutex);
       periodEnd = findPeriodEnd(time_temp, true);
     }
@@ -332,7 +332,7 @@ nbStrangeTemperature++;
     // Toutes les demandes de demarrage partagent les memes securites.
     if (decision.allowed && operatingMode == OperatingMode::off &&
         !alarmLatched && currentMode != Mode::off &&
-        (!forcedDeparture || decision.reason == pellet_v55::Reason::AutomaticFrost) &&
+        (!forcedDeparture || decision.reason == pellet_policy::Reason::AutomaticFrost) &&
         !leaveStopPending &&
         tempCorr <= startThreshold && enoughTimeRemaining &&
         std::chrono::duration_cast<std::chrono::minutes>(
@@ -476,24 +476,24 @@ std::string AutoMode::getScheduleJson() const {
   writer.Key("comfort"); writer.Double(comfortTemperature);
   // Options V5.5 : les anciens champs days/comfort restent compatibles.
   writer.Key("anticipation"); writer.StartObject();
-  writer.Key("enabled"); writer.Bool(v55Config.automatic.anticipationEnabled);
-  writer.Key("below"); writer.Double(v55Config.automatic.anticipationBelow);
-  writer.Key("minutes"); writer.Int(v55Config.automatic.anticipationMinutes);
+  writer.Key("enabled"); writer.Bool(policyConfig.automatic.anticipationEnabled);
+  writer.Key("below"); writer.Double(policyConfig.automatic.anticipationBelow);
+  writer.Key("minutes"); writer.Int(policyConfig.automatic.anticipationMinutes);
   writer.EndObject();
-  const auto writeFrost = [&writer](const pellet_v55::Frost &f) {
+  const auto writeFrost = [&writer](const pellet_policy::Frost &f) {
     writer.StartObject();
     writer.Key("enabled"); writer.Bool(f.enabled);
     writer.Key("startBelow"); writer.Double(f.startBelow);
     writer.Key("stopAt"); writer.Double(f.stopAt);
     writer.EndObject();
   };
-  writer.Key("automaticFrost"); writeFrost(v55Config.automatic.frost);
+  writer.Key("automaticFrost"); writeFrost(policyConfig.automatic.frost);
   writer.Key("presenceMode"); writer.StartObject();
-  writer.Key("start"); writer.String(timeString(v55Config.presence.startMinute).c_str());
-  writer.Key("end"); writer.String(timeString(v55Config.presence.endMinute).c_str());
-  writer.Key("comfort"); writer.Double(v55Config.presence.comfort);
+  writer.Key("start"); writer.String(timeString(policyConfig.presence.startMinute).c_str());
+  writer.Key("end"); writer.String(timeString(policyConfig.presence.endMinute).c_str());
+  writer.Key("comfort"); writer.Double(policyConfig.presence.comfort);
   writer.EndObject();
-  writer.Key("absenceFrost"); writeFrost(v55Config.absenceFrost);
+  writer.Key("absenceFrost"); writeFrost(policyConfig.absenceFrost);
 
   std::time_t now = std::time(nullptr); std::tm local{};
   const PresenceOverride visibleOverride =
@@ -511,7 +511,7 @@ std::string AutoMode::getScheduleJson() const {
   return buffer.GetString();
 }
 bool AutoMode::saveScheduleToDisk(const std::array<std::vector<PresencePeriod>, 7> &days,
-  double comfort, const pellet_v55::Config &cfg, std::string &error) const {
+  double comfort, const pellet_policy::Config &cfg, std::string &error) const {
   GenericStringBuffer<UTF8<>> buffer;
   Writer<GenericStringBuffer<UTF8<>>> writer(buffer);
   writer.StartObject(); writer.Key("days"); writer.StartArray();
@@ -529,7 +529,7 @@ bool AutoMode::saveScheduleToDisk(const std::array<std::vector<PresencePeriod>, 
   writer.Key("below"); writer.Double(cfg.automatic.anticipationBelow);
   writer.Key("minutes"); writer.Int(cfg.automatic.anticipationMinutes);
   writer.EndObject();
-  const auto writeFrost = [&writer](const pellet_v55::Frost &f) {
+  const auto writeFrost = [&writer](const pellet_policy::Frost &f) {
     writer.StartObject();
     writer.Key("enabled"); writer.Bool(f.enabled);
     writer.Key("startBelow"); writer.Double(f.startBelow);
@@ -590,7 +590,7 @@ bool AutoMode::applyScheduleJson(const std::string &json, std::string &error, bo
     }
   }
   std::lock_guard<std::mutex> lock(scheduleMutex);
-  pellet_v55::Config cfg = v55Config;
+  pellet_policy::Config cfg = policyConfig;
   cfg.automatic.days = {};
   cfg.automatic.comfort = comfort;
   for (size_t d=0; d<7; ++d)
@@ -609,7 +609,7 @@ bool AutoMode::applyScheduleJson(const std::string &json, std::string &error, bo
     cfg.automatic.anticipationBelow=a["below"].GetDouble();
     cfg.automatic.anticipationMinutes=a["minutes"].GetInt();
   }
-  const auto readFrost = [&error](const rapidjson::Value &v, pellet_v55::Frost &f) {
+  const auto readFrost = [&error](const rapidjson::Value &v, pellet_policy::Frost &f) {
     if (!v.IsObject() || !v.HasMember("enabled") || !v["enabled"].IsBool() ||
         !v.HasMember("startBelow") || !v["startBelow"].IsNumber() ||
         !v.HasMember("stopAt") || !v["stopAt"].IsNumber()) {
@@ -637,10 +637,10 @@ bool AutoMode::applyScheduleJson(const std::string &json, std::string &error, bo
     }
     cfg.presence.comfort=v["comfort"].GetDouble();
   }
-  try { pellet_v55::validate(cfg); }
+  try { pellet_policy::validate(cfg); }
   catch (const std::exception &ex) { error=ex.what(); return false; }
   if (persist && !saveScheduleToDisk(days,comfort,cfg,error)) return false;
-  presenceDays=days; comfortTemperature=comfort; v55Config=std::move(cfg);
+  presenceDays=days; comfortTemperature=comfort; policyConfig=std::move(cfg);
   ++configRevision;
   presenceOverride=PresenceOverride::none; overrideExpiresAt=0; arriveStartPending=false; leaveStopPending=false;
   return true;

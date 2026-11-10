@@ -6,7 +6,7 @@
 #include <vector>
 #include <utility>
 
-namespace pellet_v55 {
+namespace pellet_policy {
 enum class Mode { Manual, Automatic, Presence, Absence };
 enum class Override { None, Arrive, Leave };
 enum class Reason { Manual, Scheduled, Anticipation, AutomaticFrost, PresencePeriod, AbsenceFrost, OverrideArrive, OverrideLeave, Off };
@@ -143,4 +143,4 @@ private:
   bool autoFrost_ = false;
   bool absenceFrost_ = false;
 };
-} // namespace pellet_v55
+} // namespace pellet_policy
